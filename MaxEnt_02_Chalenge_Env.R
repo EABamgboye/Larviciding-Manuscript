@@ -11,6 +11,8 @@ library(usdm)
 source("functions.R")
 
 # --- Load rasters by type ---
+##EVI
+evi_dir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/Raster_files/HLS30m/EVI/Ibadan"
 
 # EVI files
 # List all EVI files
@@ -398,4 +400,5 @@ predictors_c_subset <- rast("C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban
 #                                                                   "gpw_v4_population_density_rev11_2020_1_deg") ]]
 # 
 # plot(env_stack_selected)
+
 
