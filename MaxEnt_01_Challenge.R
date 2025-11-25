@@ -16,7 +16,7 @@ library(rJava)
 source("functions.R")
 
 ##Read in Challenge Data
-lav_chal_df <- read.csv("C:/Users/DELL/OneDrive - Loyola University Chicago/lav_chal_bsw.csv")
+lav_chal_df <- read.csv(file.path(Entodir, "Wet Season Data_Ibadan", "lav_chal_bsw.csv")
 
 occurrences_in_chal <- lav_chal_df %>% 
   dplyr::filter(Anophp == "Yes")
@@ -74,3 +74,4 @@ ggplot() +
   ) +
   theme_minimal() +
   coord_sf()
+
