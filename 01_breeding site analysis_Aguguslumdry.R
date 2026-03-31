@@ -1,10 +1,18 @@
+
 # Load required libraries
 library(dplyr)
 library(geosphere)
 library(sf)
 library(purrr)
 
-# Example breeding sites dataset (simulated for demonstration)
+# Prepare and read in breeding sites dataset for Agugu Dry Season 
+lav_bs_dry <- lav_df_dry %>% 
+  dplyr::select(SN, `Settlement Type`, Latitude, Longitude, Anopheles_Caught, Breeding_Site_Recode) %>%
+  rename(site_label = SN,
+         latitude = Latitude,
+         longitude = Longitude,
+         anophw = Anopheles_Caught)
+
 lav_bs_slum_dry <- lav_bs_dry %>% 
   dplyr::filter(`Settlement Type` == "Slum") %>% 
   filter(!`site_label` %in% c(17, 27, 40))
@@ -52,9 +60,18 @@ compute_breeding_site_density <- function(num_positive_sites, sampled_area) {
 }
 
 ##Using Field data
-# Define start and end points
-fixed_start <- breeding_sites %>% filter(site_label == 1)
-fixed_end <- breeding_sites %>% filter(site_label == 50)
+# # Define start and end points
+# fixed_start <- breeding_sites %>% filter(site_label == 1)
+# fixed_end <- breeding_sites %>% filter(site_label == 50)
+
+
+##Use random start and points
+set.seed(123)
+
+rand_labels <- sample(unique(breeding_sites$site_label), size = 2, replace = FALSE)
+
+fixed_start <- breeding_sites %>% filter(site_label == rand_labels[1])
+fixed_end   <- breeding_sites %>% filter(site_label == rand_labels[2])
 
 sampled_paths <- generate_sample_paths(
   breeding_sites, 
@@ -167,5 +184,11 @@ Agudry_summary <- data.frame(
 Agudry_summary$season <- "Dry"
 
 Agudry_summary$settlment <- "Slum"
+
+write.csv(Agudry_summary , file.path(Entodir, "Agudry_summary.csv"))
+
+
+
+
 
 

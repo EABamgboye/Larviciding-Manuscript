@@ -1,10 +1,18 @@
+
 # Load required libraries
 library(dplyr)
 library(geosphere)
 library(sf)
 library(purrr)
 
-# Example breeding sites dataset (simulated for demonstration)
+# Read in and prepare formal dry season from Olopomewa
+lav_bs_dry <- lav_df_dry %>% 
+  dplyr::select(SN, `Settlement Type`, Latitude, Longitude, Anopheles_Caught, Breeding_Site_Recode) %>%
+  rename(site_label = SN,
+         latitude = Latitude,
+         longitude = Longitude,
+         anophw = Anopheles_Caught)
+
 lav_bs_formal_dry <- lav_bs_dry %>% 
   dplyr::filter(`Settlement Type` == "Formal")%>% 
   filter(!`site_label` %in% c(22, 6, 9))
@@ -55,6 +63,14 @@ compute_breeding_site_density <- function(num_positive_sites, sampled_area) {
 # Define start and end points
 fixed_start <- breeding_sites %>% filter(site_label == 1)
 fixed_end <- breeding_sites %>% filter(site_label == 50)
+
+##Use random start and points
+set.seed(123)
+
+rand_labels <- sample(unique(breeding_sites$site_label), size = 2, replace = FALSE)
+
+fixed_start <- breeding_sites %>% filter(site_label == rand_labels[1])
+fixed_end   <- breeding_sites %>% filter(site_label == rand_labels[2])
 
 sampled_paths <- generate_sample_paths(
   breeding_sites, 
@@ -163,3 +179,5 @@ Olop_summary <- data.frame(
 Olop_summary$season <- "Dry"
 
 Olop_summary$settlment <- "Formal"
+
+write.csv(Olop_summary , file.path(Entodir, "Olop_summary.csv"))

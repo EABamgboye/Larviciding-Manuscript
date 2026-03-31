@@ -4,7 +4,14 @@ library(geosphere)
 library(sf)
 library(purrr)
 
-# Example breeding sites dataset (simulated for demonstration)
+# Read in prepare wet season slum data from Agugu
+lav_bs_wet <- lav_df_wet %>% 
+  dplyr::select(`Household Code/Number`, `Settlement Type`, `_Breeding site coordinates_latitude`,`_Breeding site coordinates_longitude`, Anopheles_Caught, Breeding_Site_Recode) %>% 
+  rename(site_label = `Household Code/Number`,
+         latitude =  `_Breeding site coordinates_latitude`,
+         longitude = `_Breeding site coordinates_longitude`,
+         anophw = Anopheles_Caught)
+
 lav_bs_slum_wet <- lav_bs_wet %>% 
   dplyr::filter(`Settlement Type` == "Slum")
 
@@ -50,10 +57,20 @@ compute_breeding_site_density <- function(num_positive_sites, sampled_area) {
   ifelse(sampled_area > 0, num_positive_sites / sampled_area, NA)  # Avoid division by zero
 }
 
-##Using Field data
-# Define start and end points
-fixed_start <- breeding_sites %>% filter(site_label == 1)
-fixed_end <- breeding_sites %>% filter(site_label == 50)
+# ##Using Field data
+# # Define start and end points
+# fixed_start <- breeding_sites %>% filter(site_label == 1)
+# fixed_end <- breeding_sites %>% filter(site_label == 50)
+
+
+##Use random start and points
+set.seed(123)
+
+rand_labels <- sample(unique(breeding_sites$site_label), size = 2, replace = FALSE)
+
+fixed_start <- breeding_sites %>% filter(site_label == rand_labels[1])
+fixed_end   <- breeding_sites %>% filter(site_label == rand_labels[2])
+
 
 sampled_paths <- generate_sample_paths(
   breeding_sites, 
@@ -162,3 +179,6 @@ Aguwet_summary <- data.frame(
 Aguwet_summary$season <- "Wet"
 
 Aguwet_summary$settlment <- "Slum"
+
+write.csv(Aguwet_summary , file.path(Entodir, "Aguwet_summary.csv"))
+
