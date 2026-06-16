@@ -13,29 +13,36 @@ The overarching goal of the parent study was to generate evidence for the Nigeri
 # Background
 The present study analyzed the entomological data from selected wards in Ibadan metropolis to characterize Anopheles larval habitats, assess seasonal and ward-level variation, evaluate household spatial malaria risk, and identify environmental drivers of Anophles larva habitat suitability
 
-# Repository Structure
+# Methodology
+Potential breeding habitats were surveyed across three wards representing formal, informal, and slum settlement archetypes. Habitats were assessed for Anopheles larval presence, and larvae were collected and identified using standard methods. Breeding site density per km² was estimated using a simulated pathway technique. Spatial associations with household malaria risk were evaluated using kernel - based distance -decay weighting, while environmental drivers were modeled using MaxEnt.
 
-## /scripts: contains code for the data analysis in four components
+# Repository Structure
+## /scripts: contains code in two major folders 
+### 1) General Analysis scripts 
+  This folder contains data wrangling scripts
+### 2) Manuscript Specific Scripts 
+This folder contains data analysis to produce all the figures and results presented in the manuscript in four different domains
 * Exploratory Data Analysis/Descriptive : 
 * Household Spatial Scale Analysis
 * Habitat Suitability 
 * Sensitivity Analysis 
 
-## /figures: contains outputs from the analysis in pdf/AI files
-
-# Methodology
-Potential breeding habitats were surveyed across three wards representing formal, informal, and slum settlement archetypes. Habitats were assessed for Anopheles larval presence, and larvae were collected and identified using standard methods. Breeding site density per km² was estimated using a simulated
-pathway technique. Spatial associations with household malaria risk were evaluated using kernel - based distance -decay weighting, while environmental drivers were modeled using MaxEnt.
+## /figures: 
+This folder contains all main and supplementary figures generated from this analysis, provided in PDF and Adobe Illustrator (AI) file formats.
 
 # Key Findings
-Of 420 potential breeding sites identified, 31 (7.4%) contained Anopheles larvae. Larvae were detected mainly during the wet season (83.9%), mostly in puddles, dug wells, and drainages/gutters, and in the slum -dominated ward (61.3%), which also had higher larval density, breeding site density, and habitat
-diversity across seasons. Households nearest larval habitats had higher malaria odds in both seasons. Odds declined with distance in the informal -dominated ward but remained elevated in the slum -dominated ward, especially during the dry season (OR: 1.3; 95% CI: 1.1- 1.6). Habitat suitability increased
-with distance from large water bodies, positive NDWI values, and lower night -time light.
+* Only 7.4%(31/420) of the prospected larval habitats contained Anopheles larvae. 
+* Larvae were detected mainly during the wet season (83.9%).
+* The slum settlement predominated ward had the highest proportion of positive anopheles larval habitats(61.3%), larval density, breeding site density, and habitat diversity
+* Puddles, dug wells, and drainages/gutters accounted for about 80% of larval abundance.
+* Households nearest larval habitats had higher malaria odds in both seasons. Odds declined with distance in the informal -dominated ward but remained elevated in the slum -dominated ward, especially during the dry season (OR: 1.3; 95% CI: 1.1- 1.6).
+* Habitat suitability increased with distance from large water bodies, areas with higher population density and positive NDWI values in the slum-settlement predominated ward, while areas with lower night -time lights and negatove NDMI values were most suitable for Anophelse larval breeding in the informal-settlement predominated ward.
+  
 # Impact
-Targeted larviciding can strengthen urban malaria control by prioritizing slum-dominated wards with higher larval densities across seasons and persistent malaria risk, even during dry season
+Targeted larval source management can strengthen urban malaria control in urban slums by combining environmental management and larviciding interventions while larviciding-focused interventions might be best in other settlement types (formal or informal). Prioritizing larval source management interventions during the dry season, when breeding habitats are fewer and easier to identify, could enhance cost-effectiveness and optimize resource allocation.
 
 # Contact
 For any inquiries or contributions, please contact: Ifeoma Ozodiegwu, Assistant Professor @ Loyola University and Principal Investigator at the Urban Malaria Project via iozodiegwu@luc.edu
 
 # Acknowledgments
-Special thanks to the NMEP, Osun State Universitythe Kwara State Malaria Eliminiation Program and Ministry of Health, and all stakeholders involved in the Multistakeholder-Dialogue and field assessments.
+Special thanks to the NMEP, Osun State University, and all field researchers
