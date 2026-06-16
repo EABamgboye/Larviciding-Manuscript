@@ -2,17 +2,21 @@
 
 
 # Overview
-This repository contains the code and documentation for the paper titled above. This study emanated from the parent study which sought to understand the burden of malaria at the smallest administrative scale called wards in Nigeria. The parent study had both and epidemiological and and entomological component. The epidemiological 
-component consisted of household surveys among individuals residing in the study wards, pregnant women recruited from health facilities and longitudinal survey among children aged 0-10 years, who were all interviewed and tested for malaria using RDT kits. The entomological component comprised of adult mosquito collection using CDC light traps
-(indoor and outdoor) and pyrethrium spray catches, as well larval prospection. Entomological indices such as human biting rate(HBR), EIR, Sprozoite Rates etc were computed as data allowed. The purpose of the parent study was provided evicdence for th Nigerian Malaria Elimination Programme to inform tailoring of interventions for thier Urban Malaria
-Strategy 20
+This repository contains the code and documentation associated with the paper titled above. The study was conducted as part of a larger parent project that sought to understand the burden of malaria at the smallest administrative unit in Nigeria—the ward level.
+
+The parent study comprised both epidemiological and entomological components. The epidemiological component involved household surveys among residents of the study wards, surveys of pregnant women recruited from health facilities, and longitudinal follow-up of children aged 0–10 years. Participants were interviewed and tested for malaria using rapid diagnostic tests (RDTs).
+
+The entomological component included adult mosquito collection using indoor and outdoor CDC light traps, pyrethrum spray catches, and larval habitat prospection. Where data permitted, key entomological indices—including the Human Biting Rate (HBR), Entomological Inoculation Rate (EIR), and sporozoite rates—were calculated.
+
+The overarching goal of the parent study was to generate evidence for the Nigerian National Malaria Elimination Programme (NMEP) to support the design and tailoring of interventions for the 2026 Urban Malaria Control Strategy.
 
 # Background
-This study analyzed entomological data from selected wards in Ibadan metropolis to characterize Anopheles larval habitats, assess seasonal and ward-level variation, evaluate spatial malaria risk, and identify environmental drivers of habitat suitability
+The present study analyzed the entomological data from selected wards in Ibadan metropolis to characterize Anopheles larval habitats, assess seasonal and ward-level variation, evaluate household spatial malaria risk, and identify environmental drivers of Anophles larva habitat suitability
 
 # Repository Structure
+
 ## /scripts: contains code for the data analysis in four components
-* Exploratory Data Analysis/Descriptive
+* Exploratory Data Analysis/Descriptive : 
 * Household Spatial Scale Analysis
 * Habitat Suitability 
 * Sensitivity Analysis 
