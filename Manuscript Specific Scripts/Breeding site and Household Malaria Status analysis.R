@@ -7,36 +7,36 @@ LuPDir <- file.path(Drive, "Downloads")
 library(readxl)
 library(haven)
 
-##Read in Ibadan Household data
-ib_hh_df <- read_dta(file.path(LuPDir , "IB Wet season household data_edited.dta"))
-
-ib_mal_hh_df <- read_dta(file.path(LuPDir , "IB Wet season household malaria screening.dta"))
-
-##Merge Malaria Screening data
-ib_all_wetdata <- right_join(ib_mal_hh_df, ib_hh_df, by = "sn")
-
+# ##Read in Ibadan Household data
+# ib_hh_df <- read_dta(file.path(LuPDir , "IB Wet season household data_edited.dta"))
+# 
+# ib_mal_hh_df <- read_dta(file.path(LuPDir , "IB Wet season household malaria screening.dta"))
+# 
+# ##Merge Malaria Screening data
+# ib_all_wetdata <- right_join(ib_mal_hh_df, ib_hh_df, by = "sn")
+# 
 
 ##Read in new data
 ##Home
-ib_wetdata_long <- read.csv("C:/Users/DELL/Downloads/ibadan_long_wetseason_household_members_with_ind_netsupdated.csv")
+ib_wetdata_long <- read.csv("C:/Users/ebamg/Downloads/ibadan_long_wetseason_household_members_with_ind_netsupdated.csv")
 
 ##Work
-ib_wetdata_long <- read.csv("C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan_epi/Combined Working Data/Ibadan/Wet Season Data/Long Data/ibadan_long_wetseason_household_members_with_ind_netsupdated.csv")
+ib_wetdata_long <- read.csv("C:/Users/ebamg/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan_epi/Combined Working Data/Ibadan/Wet Season Data/Long Data/ibadan_long_wetseason_household_members_with_ind_netsupdated.csv")
 
 
 ##Select only households in EAs where larval prospection was conducted(Agugu & Challenge)
-ib_all_wetdata_lav <- ib_wetdata_long %>% 
-  dplyr::filter(bi5 %in% c('CHALLENGE_041/13', 'CHALLENGE_021/18', 'AGUGU_031/21')
-  )
-    
-    # 
-    # 'AGUGU_024/37', 'AGUGU_012/26', 'AGUGU_030/8','AGUGU_026/3','AGUGU_027/1',
-    #                        'CHALLENGE_021/18', 'CHALLENGE _21/18', 'CHALLENGE_18/021',
-    #                        'CHALLENGE _18/021', 'CHALLENGE _021/18', 'CHALLENGE_021/018', 
-    #                        'CHALLENGE_21/18', 'CHALLENGE_041/013', 'CHALLENGE_041/13', 
-    #                        'CHALLENGE _041/13'))
-
-##Check Challenge Housheolds
+# ib_all_wetdata_lav <- ib_wetdata_long %>% 
+#   dplyr::filter(bi5 %in% c('CHALLENGE_041/13', 'CHALLENGE_021/18', 'AGUGU_031/21')
+#   )
+#     
+#     # 
+#     # 'AGUGU_024/37', 'AGUGU_012/26', 'AGUGU_030/8','AGUGU_026/3','AGUGU_027/1',
+#     #                        'CHALLENGE_021/18', 'CHALLENGE _21/18', 'CHALLENGE_18/021',
+#     #                        'CHALLENGE _18/021', 'CHALLENGE _021/18', 'CHALLENGE_021/018', 
+#     #                        'CHALLENGE_21/18', 'CHALLENGE_041/013', 'CHALLENGE_041/13', 
+#     #                        'CHALLENGE _041/13'))
+# 
+# ##Check Challenge Housheolds
 
 ##Create dataset for analysis
 household_sum_df <- ib_wetdata_long %>%
@@ -56,6 +56,7 @@ household_sum_df <- household_sum_df  %>%
     filter(!is.na(latitude) & !is.na(longitude))
 
 
+##Dry 
 
 
 # ib_all_wetdata_df <- ib_all_wetdata %>%
@@ -117,12 +118,14 @@ household_sum_df_int <- st_intersection(household_sum_df, df_ib)
 ##Extract for Agugu alone
 household_sum_df_int_a <- st_intersection(household_sum_df, df_ib_a)
 
+sum(household_sum_df_int_a_h$n_tested, na.rm = TRUE)
 #Extract for Challenge 
 # # Keep only grids with FID > 108
 # grids_keep <- Ch_gripshp[Ch_gripshp$FID > 108, ]
 
 household_sum_df_int_c <- st_intersection(household_sum_df, df_ib_c)
 
+household_sum_df_int_o <- st_intersection(household_sum_df, df_ib_o)
 
 ##Plot location of households
 ggplot(df_ib_a) +
@@ -140,6 +143,41 @@ ggplot(df_ib_a) +
   xlab("")+
   labs(title= "Household malaria status")+
   coord_sf()
+
+
+ggplot(df_ib_c) +
+  geom_sf(fill= "NA")+
+  geom_sf(data = household_sum_df_int_c, aes(color = Malaria_Positive_HH), size = 1, alpha = 0.5)+
+  scale_color_manual(values = c(Negative = "seagreen", Positive = "red"))+
+  # scale_shape_manual(values = c(Formal = 16,  Informal= 17, Slum = 14))+
+  # geom_text_repel(
+  #   data = household_sum_df_int_c,
+  #    aes(label =  `sn`, geometry = geometry),color ='black',
+  #    stat = "sf_coordinates", min.segment.length = 0, size = 2.5, force = 1, max.overlaps = Inf)+
+  guides(alpha = FALSE, size = FALSE) +
+  map_theme()+ 
+  ylab("")+
+  xlab("")+
+  labs(title= "Household malaria status")+
+  coord_sf()
+
+ggplot(df_ib_o) +
+  geom_sf(fill= "NA")+
+  geom_sf(data = household_sum_df_int_o, aes(color = Malaria_Positive_HH), size = 1, alpha = 0.5)+
+  #geom_sf(data = lav_df_hh_int_o, aes(color = Anphl_C), size = 1.5, alpha = 0.5)+
+  scale_color_manual(values = c(Negative = "seagreen", Positive = "red"))+
+  # scale_shape_manual(values = c(Formal = 16,  Informal= 17, Slum = 14))+
+  # geom_text_repel(
+  #   data = lav_df_hh_int_o,
+  #    aes(label =  `sn`, geometry = geometry),color ='black',
+  #    stat = "sf_coordinates", min.segment.length = 0, size = 2.5, force = 1, max.overlaps = Inf)+
+  guides(alpha = FALSE, size = FALSE) +
+  map_theme()+ 
+  ylab("")+
+  xlab("")+
+  labs(title= "Household malaria status")+
+  coord_sf()
+
 
 
 
@@ -313,10 +351,16 @@ st_geometry(lav_df_hh_int_c) <- st_sfc(
   crs = st_crs(lav_df_hh_int_c)
 )
 
+##Updated Analysis April 27th
 
+##Read in updated larval sites
+lav_df_hh_int_a_wet <- st_read("C:/Users/ebamg/OneDrive - Loyola University Chicago/Documents/IB_KA_field_study-main/IB_KA_field_study-main/Agugu_Larvalsites_wet.gpkg")
+lav_df_hh_int_a_dry <- st_read("C:/Users/ebamg/OneDrive - Loyola University Chicago/Documents/IB_KA_field_study-main/IB_KA_field_study-main/Agugu_Larvalsites_dry.gpkg")
+
+lav_df_hh_int_o <-  st_read("C:/Users/ebamgboye/OneDrive - Loyola University Chicago/Documents/IB_KA_field_study-main/IB_KA_field_study-main/Olopomewa_Lavsites_Dry.shp")
 ##Some data wrangling to fit larval prospection area(using convex hull) and household survey points
 
-#Agugu
+#Agugu(Wet)
 lav_df_hh_int_a_h   <- st_transform(lav_df_hh_int_a, 32631)
 household_sum_df_int_a_h <- st_transform(household_sum_df_int_a, 32631)
 
@@ -327,6 +371,8 @@ a_breeding_hull <- lav_df_hh_int_a_h %>%
 
 households_in_hull_a <- household_sum_df_int_a_h[st_within(household_sum_df_int_a_h,
                                                            a_breeding_hull, sparse = FALSE), ]
+
+sum(households_in_hull_a$n_tested, na.rm = TRUE)
 
 #Challenge
 lav_df_hh_int_c_h   <- st_transform(lav_df_hh_int_c, 32631)
@@ -339,6 +385,17 @@ c_breeding_hull <- lav_df_hh_int_c_h %>%
 
 households_in_hull_c <- household_sum_df_int_c_h[st_within(household_sum_df_int_c_h,
                                                            c_breeding_hull, sparse = FALSE), ]
+#Olopomewa
+lav_df_hh_int_o_h   <- st_transform(lav_df_hh_int_o, 32631)
+household_sum_df_int_o_h <- st_transform(household_sum_df_int_o, 32631)
+
+
+o_breeding_hull <- lav_df_hh_int_o_h %>%
+  st_union() %>%
+  st_convex_hull()
+
+households_in_hull_o <- household_sum_df_int_o_h[st_within(household_sum_df_int_o_h,
+                                                           o_breeding_hull, sparse = FALSE), ]
 
 
 
@@ -372,7 +429,7 @@ ggsave(paste0(LuDir,"/", Sys.Date(), "/", 'Household malaria and larval breeding
 ##Plot location of households incorporating larval habitats
 lha <- ggplot(Ag_gripshp) +
   geom_sf(fill= "NA")+
-  geom_sf(data = households_in_hull_a, aes(color = Malaria_Positive_HH, size = 2), alpha = 0.4)+
+  geom_sf(data = households_in_hull_a, aes(color = Malaria_Positive_HH, size = 1.5), alpha = 0.4)+
   scale_color_manual(values = c(Negative = "seagreen", Positive = "red"))+
   geom_sf(data = lav_df_hh_int_a_h,
           aes(shape = Anopheles_Caught, fill = Anopheles_Caught),
@@ -391,6 +448,26 @@ lha <- ggplot(Ag_gripshp) +
 ggsave(paste0(LuDir,"/", Sys.Date(), "/", 'Household malaria and larval breeding site(Agugu).pdf'), lha, width = 8, height = 6)
 
 
+#Olopomewa
+lho <- ggplot(df_ib_o) +
+  geom_sf(fill= "NA")+
+  geom_sf(data = household_sum_df_int_o, aes(color = Malaria_Positive_HH, size = 1.5), alpha = 0.4)+
+  scale_color_manual(values = c(Negative = "seagreen", Positive = "red"))+
+  geom_sf(data = lav_df_hh_int_o_h,
+          aes(shape = Anphl_C, fill = Anphl_C),
+          size = 3.5, color = "black") +
+  scale_shape_manual(name = "Presence of Anopheles",
+                     values = c(No = 21, Yes = 24)) +  # 21 = filled circle, 24 = triangle
+  scale_fill_manual(name = "Presence of Anopheles",
+                    values = c(No = "yellow", Yes = "blue")) +
+  # geom_sf_text(data = Ag_gripshp, aes(label = FID), size = 1.5, color = "black") +
+  map_theme()+ 
+  ylab("")+
+  xlab("")+
+  labs(title= "Household malaria and larval breeding site status")+
+  coord_sf()
+
+ggsave(paste0(LuDir,"/", Sys.Date(), "/", 'Household malaria and larval breeding site(Agugu).pdf'), lha, width = 8, height = 6)
 
 #Compute distances and assess relationships
 # Transform to UTM Zone 31N 

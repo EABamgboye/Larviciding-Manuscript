@@ -1,8 +1,15 @@
 #loadpath
 user <- Sys.getenv("USERNAME")
 Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
+shapefileDir <- "C:/Users/ebamg/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan"
+Entodir <- "C:/Users/ebamg/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan/kano_ibadan_ento/LManuscript"
+Lavplotsdir <- "C:/Users/ebamg/Urban Malaria Proj Dropbox/urban_malaria/projects/Manuscripts/ongoing/Larviciding Manuscript/New Manuscript Sections"
+
+##Office
+user <- Sys.getenv("USERNAME")
+Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
 shapefileDir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan"
-Entodir <- "C:/Users/ebamg/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan/kano_ibadan_ento"
+Entodir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan/kano_ibadan_ento/LManuscript"
 Lavplotsdir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/projects/Manuscripts/ongoing/Larviciding Manuscript/New Manuscript Sections"
 
 ##load packages and themes
@@ -45,6 +52,8 @@ pd <- ggplot(df_ib) +
   map_theme()+ 
   labs(title= "Wards in Ibadan visited for entomology study ")+
   coord_sf()
+
+print(pd)
 
 ggsave(paste0(LuDir, '/plots/', Sys.Date(), "/", 'ibadan ento study wards.pdf'), pd, width = 8, height = 6)
 
@@ -174,12 +183,17 @@ lav_df_wet$season <- "Wet"
  
 ##EXtract variables for breeding site analysis
 lav_dfd <- lav_df_dry %>% 
-  dplyr::select(`Settlement Type`, Anopheles_Caught,
+  dplyr::select(Locality,`Settlement.Type`, Anopheles_Caught,
                 season, Breeding_Site_Recode, Breeding_Site_Recode2)
 
+##Rename Locality to enable merge with wet data
+lav_dfd <- lav_dfd %>% 
+  rename(`Ward.Name` = `Ward Name`)
+
 lav_dfw <- lav_df_wet %>% 
-  dplyr::select(`Settlement Type`, Anopheles_Caught,
+  dplyr::select(`Ward.Name`,`Settlement.Type`, Anopheles_Caught,
                 season, Breeding_Site_Recode, Breeding_Site_Recode2)
+
 
 lav_overall <- rbind(lav_dfd, lav_dfw)
 
@@ -194,16 +208,16 @@ lav_ib_dry <- lav_df_dry %>%
 subset_lav <- lav_ib_dry[lav_ib_dry$`Anopheles` > 0, ]
 
 lav_den_sum <- subset_lav %>% 
-  mutate(Larva_Density = `Anopheles`/`No of dips`)
+  mutate(Larva_Density = `Anopheles`/`No.of.dips`)
 
 # Recode Site Codes for better understanding
 lav_den_sum <- lav_den_sum %>% 
-  mutate(`Site Code` = case_when(
-    `Site Code` ==  "1" ~ "1",
-    `Site Code` == "6" ~ "6",
-    `Site Code` == "IB/AG/14" ~ "14",
-    `Site Code` == "IB/OL/10" ~ "10",
-    `Site Code` == "IB/OL/20" ~ "20"
+  mutate(`Site.Code` = case_when(
+    `Site.Code` ==  "1" ~ "1",
+    `Site.Code` == "6" ~ "6",
+    `Site.Code` == "IB/AG/14" ~ "14",
+    `Site.Code` == "IB/OL/10" ~ "10",
+    `Site.Code` == "IB/OL/20" ~ "20"
   ))
 
 lav_den_sum$season <- "Dry"
@@ -213,25 +227,29 @@ lav_den_sum %>%
   summarise(Total_Anopheles = sum(Anopheles, na.rm = TRUE))
 
 ##Wet Season
-subset_lav_wet <- lav_df_wet[lav_df_wet$`Number of Anopheles` > 0, ]
+subset_lav_wet <- lav_df_wet[lav_df_wet$`Number.of.Anopheles` > 0, ]
 
 lav_den_sum_wet <- subset_lav_wet %>% 
-  mutate(Larva_Density = `Number of Anopheles`/`Number of Dips`)
+  mutate(Larva_Density = `Number.of.Anopheles`/`Number.of.Dips`)
 
 lav_den_sum_wet$season <- "Wet"
 
 ##Compute Av. Larval density
 #Dry
 lav_den_sum_dry <- lav_den_sum %>% 
-  group_by(`Settlement Type`, `Breeding_Site_Recode`) %>%  # Group by breeding site type
+  group_by(`Locality`, `Breeding_Site_Recode`) %>%  # Group by breeding site type
   summarize(
     AvgLD = mean(`Larva_Density`, na.rm = TRUE)  # Average number of Anopheles caught per site
   )
 lav_den_sum_dry$season <- "Dry"
 
+##Rename Locality
+lav_den_sum_dry <- lav_den_sum_dry %>% 
+  rename(Ward.Name = Locality)
+
 #Wet
 lav_den_sum_wett <- lav_den_sum_wet %>% 
-  group_by(`Settlement Type`, `Breeding_Site_Recode`) %>%  # Group by breeding site type
+  group_by(`Ward.Name`, `Breeding_Site_Recode`) %>%  # Group by breeding site type
   summarize(
     AvgLD = mean(`Larva_Density`, na.rm = TRUE)  # Average number of Anopheles caught per site
   )
@@ -248,7 +266,7 @@ write.csv(lav_den_sum_all, file.path(Entodir, "lav_density_dataset.csv"))
 
 
 ##Manuscript figures
-##Figure 1: Larval habitat locations
+##Figure 1: Illustration of Methodology
 
 ##Figure 2: Pictures of some of the prospected habitats
 
@@ -260,20 +278,22 @@ lav_overall <- read.csv(file.path(Entodir, "lav_breedingsite_dataset.csv"))
 ##Figure 3A: Types of breeding sites prospected
 # Summarize counts
 donut_data <- lav_overall %>%
-  count(Breeding_Site_Recode2) %>%
-  mutate(
+  dplyr::count(Breeding_Site_Recode) %>%
+  dplyr::mutate(
     prop = n / sum(n),
-    label = paste0(Breeding_Site_Recode2, "\n", round(prop*100, 2), "%")
+    label = paste0(Breeding_Site_Recode, "\n", round(prop*100, 2), "%")
   )
 
-# Custom colors 
-custom_cols <- c(
-  "Permanent" = "#ff7f00",
-  "Artificial" = "#6a3d9a"
-)
+# # Custom colors 
+# custom_cols <- c(
+#   "Permanent" = "#ff7f00",
+#   "Artificial" = "#6a3d9a"
+# )
+donut_data <- donut_data %>%
+  mutate(label = paste0(n, "\n(", scales::percent(prop), ")"))
 
 # Make donut plot
-Fig3a <- ggplot(donut_data, aes(x = 2, y = prop, fill = Breeding_Site_Recode2)) +
+Fig3a <- ggplot(donut_data, aes(x = 2, y = prop, fill = Breeding_Site_Recode)) +
   geom_col(color = "white", width = 1) +
   coord_polar(theta = "y") +
   
@@ -281,7 +301,7 @@ Fig3a <- ggplot(donut_data, aes(x = 2, y = prop, fill = Breeding_Site_Recode2)) 
   annotate("rect", xmin = 0, xmax = 1.3, ymin = 0, ymax = 1,
            fill = "white", color = NA) +
   
-  scale_fill_manual(values = custom_cols) +
+  #scale_fill_manual(values = custom_cols) +
   
   geom_text(aes(label = label), 
             position = position_stack(vjust = 0.5), size = 4) +
@@ -297,12 +317,14 @@ Fig3a <- ggplot(donut_data, aes(x = 2, y = prop, fill = Breeding_Site_Recode2)) 
     plot.title = element_text(size = 14, face = "bold")
   )
 
+print(Fig3a)
+
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Distribution of Breeding Site Types.pdf'), Fig3a, width = 8, height = 9)
 
 #Figure 3B: Percentage of breeding site type by season
 # Summarize counts by Season, and Breeding site type
 lav_overall_sum <- lav_overall %>% 
-  group_by(Breeding_Site_Recode2, Season) %>%
+  group_by(Breeding_Site_Recode2, season) %>%
   summarise(Count = n(), .groups = "drop") %>%
   # calculate total per Season for percentage
   group_by(Breeding_Site_Recode2) %>%
@@ -312,10 +334,11 @@ lav_overall_sum <- lav_overall %>%
 
 # Facet plot with stacked bars
 Fig3b <- ggplot(lav_overall_sum , 
-              aes(x = Breeding_Site_Recode2, y = Percent, fill = Season)) +
+                aes(x = Breeding_Site_Recode2, y = Percent, fill = season)) +
   geom_bar(stat = "identity") +
-  geom_text(aes(label = paste0(round(Percent, 1), "%")),
-            position = position_stack(vjust = 0.5), size = 3) +
+  geom_text(aes(label = paste0(Count, " (", round(Percent, 1), "%)")),
+            position = position_stack(vjust = 0.5), 
+            size = 3) +
   scale_fill_manual(values = c("Dry" = "bisque1", "Wet" = "lightblue")) +
   labs(
     title = "Proportion of Breeding Sites by Season and Type",
@@ -325,20 +348,22 @@ Fig3b <- ggplot(lav_overall_sum ,
   ) +
   theme_manuscript()
 
+print(Fig3b)
+
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Proportion of Breeding Sites by Season and Type.pdf'), Fig3b, width = 8, height = 9)
 
 
-#Figure 3C: Percentage of breeding site type by settlement type and seaason
+#Figure 3C: Percentage of breeding site type by ward and seaason
 
 # Summarise counts per Settlement, Season, and Breeding Site Type
 lav_plot_data <- lav_overall %>%
-  group_by(Settlement, Breeding_Site_Recode2, Season) %>%
+  group_by(Ward.Name, Breeding_Site_Recode2, season) %>%
   summarise(Count = n(), .groups = "drop")
 
 ##Compute proportion per category
 lav_plot_data_prop <- lav_plot_data %>%
   # group by Settlement and Breeding Site Type
-  group_by(Settlement, Season) %>%
+  group_by(Ward.Name, season) %>%
   # calculate total sites of this type per Settlement
   mutate(TotalType = sum(Count)) %>%
   # proportion of each season within that type
@@ -347,10 +372,11 @@ lav_plot_data_prop <- lav_plot_data %>%
 
 # Facet plot with stacked bars
 Fig3c <- ggplot(lav_plot_data_prop , 
-              aes(x = Settlement, y = Proportion, fill = Breeding_Site_Recode2)) +
+              aes(x = Ward.Name, y = Proportion, fill = Breeding_Site_Recode2)) +
   geom_bar(stat = "identity") +
-  geom_text(aes(label = paste0(round(Proportion, 1), "%")),
-            position = position_stack(vjust = 0.5), size = 3) +
+  geom_text(aes(label = paste0(Count, " (", round(Proportion, 1), "%)")),
+            position = position_stack(vjust = 0.5), 
+            size = 3) +
   scale_fill_manual(values = c("Artificial" = "bisque1", "Permanent" = "#b2df8a")) +
   labs(
     title = "Proportion of Breeding Sites by Season and Type",
@@ -358,10 +384,12 @@ Fig3c <- ggplot(lav_plot_data_prop ,
     y = "Proportion (%)",
     fill = "Season"
   ) +
-  facet_wrap(~ Season) +
+  facet_wrap(~ season) +
   theme_manuscript()
 
-ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Proportion of Breeding Sites by Season, Sett and Type.pdf'), Fig3c, width = 8, height = 9)
+print(Fig3c)
+
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Proportion of Breeding Sites by Season, Ward and Type.pdf'), Fig3c, width = 8, height = 9)
 
 
 ##Breeding site physico-chemical characteristics
@@ -376,21 +404,26 @@ lav_df_wet <- read.csv(file.path(Entodir, "lav_dataset_wet.csv"))
 
 ##Dry Season data wrangling
 lav_physico_drydf <- lav_df_dry %>% 
-  dplyr::select(`Settlement Type`, `Origin of water`, `Water nature`, `Water Characteristics`, Temp, 
-                pH, `Sunlight exposure`, Vegetation, Anopheles_Caught, Breeding_Site_Recode, 
-                Breeding_Site_Recode2, season)
+  dplyr::select(Locality, `Origin.of.water`, `Water.nature`, 
+                `Water.Characteristics`, Temp, pH, 
+                `Sunlight.exposure`, Vegetation, Anopheles_Caught, 
+                Breeding_Site_Recode, Breeding_Site_Recode2, season)
+
+##Rename Locality to enable merge with wet data
+lav_physico_drydf <- lav_physico_drydf %>% 
+  rename(`Ward.Name` = Locality)
 
 #Wet Season
 lav_physico_wetdf <- lav_df_wet %>% 
   dplyr::select(
-    `Settlement Type`,
-    `Origin of Water`,
-    `Water Nature`,
-    `Water Characteristics`,
-    `Temperature(Celcius)`,
+    Ward.Name,
+    `Origin.of.Water`,
+    `Water.Nature`,
+    `Water.Characteristics`,
+    `Temperature.Celcius.`,
     pH,
-    `IIs the breeding site exposed to sunlight?`,
-    `Presence of Vegetation`,
+    `IIs.the.breeding.site.exposed.to.sunlight.`,
+    `Presence.of.Vegetation`,
     Anopheles_Caught,
     Breeding_Site_Recode,
     Breeding_Site_Recode2,
@@ -398,25 +431,29 @@ lav_physico_wetdf <- lav_df_wet %>%
   ) %>%
   # Rename columns to match lav_physico_drydf exactly
   dplyr::rename(
-    `Origin of water` = `Origin of Water`,
-    `Water nature` = `Water Nature`,
-    Temp = `Temperature(Celcius)`,
-    `Sunlight exposure` = `IIs the breeding site exposed to sunlight?`,
-    Vegetation = `Presence of Vegetation`
+    `Origin.of.water` = `Origin.of.Water`,
+    `Water.nature` = `Water.Nature`,
+    Temp = `Temperature.Celcius.`,
+    `Sunlight.exposure` = `IIs.the.breeding.site.exposed.to.sunlight.`,
+    Vegetation = `Presence.of.Vegetation`
   )
 
 
 lav_physicodf_dry_wet <- dplyr::bind_rows(lav_physico_drydf, lav_physico_wetdf)
 
-##Clean up Extra 3 rows to remove data issues
-lav_physicodf_dry_wet <- lav_physicodf_dry_wet %>%
-  filter(
-    !(
-      `Settlement Type` == "Slum" &
-        `Origin of water` == "drinage" &
-        origin_clean == "Other/Unknown"
-    )
-  )
+write.csv(lav_physicodf_dry_wet, file.path(Entodir, "lav_physico_dataset.csv"))
+
+##Read in physicochemical dataset
+lav_physicodf_dry_wet <- read.csv(file.path(Entodir, "lav_physico_dataset.csv"))
+# ##Clean up Extra 3 rows to remove data issues
+# lav_physicodf_dry_wet <- lav_physicodf_dry_wet %>%
+#   filter(
+#     !(
+#       `Settlement Type` == "Slum" &
+#         `Origin of water` == "drinage" &
+#         origin_clean == "Other/Unknown"
+#     )
+#   )
 
 
 ##Figure 3D: Percentage of breeding site by water nature
@@ -426,28 +463,28 @@ lav_physicodf_dry_wet <- lav_physicodf_dry_wet %>%
   mutate(
     origin_clean = case_when(
       # Rain categories
-      str_detect(`Origin of water`, regex("^rain", ignore_case = TRUE)) ~ "Rain",
+      str_detect(`Origin.of.water`, regex("^rain", ignore_case = TRUE)) ~ "Rain",
       
       # River
-      str_detect(`Origin of water`, regex("river", ignore_case = TRUE)) ~ "River/Stream",
+      str_detect(`Origin.of.water`, regex("river", ignore_case = TRUE)) ~ "River/Stream",
       
       # Drainage / gutter / ditch
-      str_detect(`Origin of water`, regex("drain|ditch|gutter", ignore_case = TRUE)) ~ "Drainage/Gutter",
+      str_detect(`Origin.of.water`, regex("drain|ditch|gutter", ignore_case = TRUE)) ~ "Drainage/Gutter",
       
       # Waste water / sewage
-      str_detect(`Origin of water`, regex("waste|sewage", ignore_case = TRUE)) ~ "Waste water/Sewage",
+      str_detect(`Origin.of.water`, regex("waste|sewage", ignore_case = TRUE)) ~ "Waste water/Sewage",
       
       # Domestic / Household
-      str_detect(`Origin of water`, regex("domestic|household", ignore_case = TRUE)) ~ "Household/Domestic",
+      str_detect(`Origin.of.water`, regex("domestic|household", ignore_case = TRUE)) ~ "Household/Domestic",
       
       # Man-made containers
-      str_detect(`Origin of water`, regex("man made|manmade", ignore_case = TRUE)) ~ "Man-made",
+      str_detect(`Origin.of.water`, regex("man made|manmade", ignore_case = TRUE)) ~ "Man-made",
       
       # Borehole
-      str_detect(`Origin of water`, regex("borehole", ignore_case = TRUE)) ~ "Borehole",
+      str_detect(`Origin.of.water`, regex("borehole", ignore_case = TRUE)) ~ "Borehole",
       
       # Well
-      str_detect(`Origin of water`, regex("well", ignore_case = TRUE)) ~ "Well",
+      str_detect(`Origin.of.water`, regex("well", ignore_case = TRUE)) ~ "Well",
       
       # Default
       TRUE ~ "Other/Unknown"
@@ -475,9 +512,9 @@ lav_physicodf_dry_wet <- lav_physicodf_dry_wet %>%
 
 # Calculate counts and percentages within each Settlement Type(by season)
 lav_physicodf_plot <- lav_physicodf_dry_wet %>%
-  group_by(`Settlement Type`, season, waterorigin4) %>%
+  group_by(`Ward.Name`, season, waterorigin4) %>%
   summarise(count = n(), .groups = "drop") %>%
-  group_by(`Settlement Type`, season) %>%
+  group_by(`Ward.Name`, season) %>%
   mutate(
     percent = count / sum(count) * 100,
     waterorigin4_ordered = fct_reorder(waterorigin4, desc(count))
@@ -497,44 +534,46 @@ lav_physicodf_plot$waterorigin4_ordered <- factor(
 )
 
 # Make Plot
-Fig3d <- ggplot(lav_physicodf_plot, aes(x = `Settlement Type`, y = percent, fill = waterorigin4_ordered)) +
+Fig3d <- ggplot(lav_physicodf_plot, aes(x = `Ward.Name`, y = percent, fill = waterorigin4_ordered)) +
   geom_bar(stat = "identity", color = "black", width = 0.7) +
-  geom_text(aes(label = paste0(round(percent, 1), "%")), 
-            position = position_stack(vjust = 0.5),
-            size = 3.5) +
+  geom_text(aes(label = paste0(count, " (", round(percent, 1), "%)")),
+            position = position_stack(vjust = 0.5), 
+            size = 3)  +
   facet_grid(~season) +
   scale_y_continuous(labels = percent_format(scale = 1)) +  
   scale_fill_brewer(palette = "Set3") +
   labs(
-    x = "Settlement Type",
+    x = "Ward",
     y = "Percentage of Water Sources",
     fill = "Water Origin",
-    title = "Distribution of Water Origins by Settlement Type"
+    title = "Distribution of Water Origins by Ward"
   ) +
   theme_manuscript()
+
+print(Fig3d)
 
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Water Origin of breeding sites.pdf'), Fig3d, width = 8, height = 6)
 
 
 #Figure 3E: Percentage of breeding sites by water nature
 ##Water Nature
-table(lav_physicodf_dry_wet$waternature)
+#table(lav_physicodf_dry_wet$waternature)
 
 lav_physicodf_dry_wet <- lav_physicodf_dry_wet %>%
   mutate(waternature = case_when(
-    `Water nature` == "Clear" ~ "Clean",
+    `Water.nature` == "Clear" ~ "Clean",
     
-    `Water nature` %in% c("Clean", "clean") ~ "Clear",
+    `Water.nature` %in% c("Clean", "clean") ~ "Clear",
     
-    `Water nature` %in% c("polluted",
+    `Water.nature` %in% c("polluted",
                           "Polluted") ~ "Polluted"
   ))
 
 # Calculate counts and percentages within each Settlement Type
 lav_physicodf_plot2 <- lav_physicodf_dry_wet %>%
-  group_by(`Settlement Type`, season, waternature) %>%
+  dplyr::group_by(`Ward.Name`, season, waternature) %>%
   summarise(count = n(), .groups = "drop") %>%
-  group_by(`Settlement Type`, season) %>%
+  group_by(`Ward.Name`, season) %>%
   mutate(
     percent = count / sum(count) * 100,
     waternature_ordered = fct_reorder(waternature, desc(count))
@@ -544,15 +583,12 @@ lav_physicodf_plot2 <- lav_physicodf_dry_wet %>%
 #Make Plot by Season and Settlement Type
 Fig3e <- ggplot(
   lav_physicodf_plot2,
-  aes(x = `Settlement Type`, y = percent, fill = waternature_ordered)
+  aes(x = `Ward.Name`, y = percent, fill = waternature_ordered)
 ) +
   geom_col(width = 0.7, color = "black") +
-  geom_text(
-    aes(label = paste0(round(percent, 1), "%")),
-    position = position_stack(vjust = 0.5),
-    size = 3.5,
-    color = "black"
-  ) +
+  geom_text(aes(label = paste0(count, " (", round(percent, 1), "%)")),
+            position = position_stack(vjust = 0.5), 
+            size = 3) +
   facet_wrap(~season) +
   scale_fill_manual(
     values = c("Clear" = "#a6cee3", "Polluted" = "#d2b48c")
@@ -569,26 +605,26 @@ Fig3e <- ggplot(
     strip.text = element_text(face = "bold")
   )
 
+print(Fig3e)
 
-ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Nature of Water by Settlement Type and Season.pdf'), Fig3e, width = 8, height = 6)
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Nature of Water by Ward and Season.pdf'), Fig3e, width = 8, height = 6)
 
 
 
 
 ##Sunlight
-table(lav_physicodf_dry_wet$sunlight)
-
 lav_physicodf_dry_wet <- lav_physicodf_dry_wet %>%
   mutate(sunlight = case_when(
-    `Sunlight exposure` %in% c("Yes", 
+    `Sunlight.exposure` %in% c("Yes", 
                                "sunlit",
                                "Sunlit",
                                "sunnlit") ~ "Yes",
     
-    `Sunlight exposure` %in% c("No",
+    `Sunlight.exposure` %in% c("No",
                                "Shaded") ~ "No"
   ))
 
+table(lav_physicodf_dry_wet$sunlight)
 
 #Figure 3F: Percentage of breeding site type by vegetation
 ##Vegetation
@@ -608,9 +644,9 @@ lav_physicodf_dry_wet <- lav_physicodf_dry_wet %>%
 
 # Calculate counts and percentages within each Settlement Type
 lav_physicodf_plot3 <- lav_physicodf_dry_wet %>%
-  group_by(season, `Settlement Type`, Vegetation) %>%
+  group_by(season, `Ward.Name`, Vegetation) %>%
   summarise(count = n(), .groups = "drop") %>%
-  group_by(season, `Settlement Type`) %>%
+  group_by(season, `Ward.Name`) %>%
   mutate(
     percent = count / sum(count) * 100,
     Vegetation_ordered = fct_reorder(Vegetation, desc(count))
@@ -628,7 +664,7 @@ lav_physicodf_plot3$Vegetation_ordered <- factor(
 )
 
 Fig3f <- ggplot(lav_physicodf_plot3, 
-       aes(x = as.factor(`Settlement Type`), 
+       aes(x = as.factor(`Ward.Name`), 
            y = percent, 
            fill = Vegetation_ordered)) +
   geom_bar(stat = "identity",
@@ -639,12 +675,14 @@ Fig3f <- ggplot(lav_physicodf_plot3,
   scale_fill_manual(values = c("Yes" = "#b2df8a", "No" = "cornsilk")) +
   labs(
     title = "Proportion of Breeding Sites covered with Vegetation",
-    x = "Settlement Type",
+    x = "Ward",
     y = "Proportion (%)",
     fill = "Vegetation Presence"
   ) +
   facet_wrap(~ season) +
   theme_manuscript()
+
+print(Fig3f)
 
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Vegetation Cover by Settlement Type.pdf'), Fig3f, width = 8, height = 9)
 
@@ -659,21 +697,21 @@ ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Vegetation Cover by Sett
 main_data <- lav_overall %>%
   mutate(
     Anopheles_Caught = unlist(Anopheles_Caught),
-    Season = unlist(Season)
+    Season = unlist(season)
   ) %>%
   filter(Anopheles_Caught == "Yes") %>%
-  group_by(Season) %>%
+  group_by(season) %>%
   summarize(value = n(), .groups = "drop") %>%
-  dplyr::select(Season, value)
+  dplyr::select(season, value)
   
 # Inset pie charts: Temporary vs Permanent per season
 inset_wet <- lav_overall %>%
   mutate(
     Anopheles_Caught = unlist(Anopheles_Caught),
-    Season = unlist(Season)
+    Season = unlist(season)
   ) %>%
   filter(Anopheles_Caught == "Yes") %>%
-  filter(Season == "Wet") %>% 
+  filter(season == "Wet") %>% 
   group_by(Breeding_Site_Recode2) %>%
   summarize(value = n(), .groups = "drop") %>%
   dplyr::select(Breeding_Site_Recode2, value)
@@ -681,10 +719,10 @@ inset_wet <- lav_overall %>%
 inset_dry <- lav_overall %>%
   mutate(
     Anopheles_Caught = unlist(Anopheles_Caught),
-    Season = unlist(Season)
+    Season = unlist(season)
   ) %>%
   filter(Anopheles_Caught == "Yes") %>%
-  filter(Season == "Dry") %>% 
+  filter(season == "Dry") %>% 
   group_by(Breeding_Site_Recode2) %>%
   summarize(value = n(), .groups = "drop") %>%
   dplyr::select(Breeding_Site_Recode2, value)
@@ -692,7 +730,7 @@ inset_dry <- lav_overall %>%
 
 # Add percentages for labeling
 main_data <- main_data %>%
-  mutate(label = paste0(Season, "\n", value, " (", round(value/sum(value)*100, 1), "%)"))
+  mutate(label = paste0(season, "\n", value, " (", round(value/sum(value)*100, 1), "%)"))
 
 inset_wet <- inset_wet %>%
   mutate(label = paste0(Breeding_Site_Recode2, "\n", value, " (", round(value/sum(value)*100, 1), "%)"))
@@ -704,7 +742,7 @@ inset_dry <- inset_dry %>%
 # ----Make plots--------------
 
 # Main pie
-main_pie <- ggplot(main_data, aes(x = "", y = value, fill = Season)) +
+main_pie <- ggplot(main_data, aes(x = "", y = value, fill = season)) +
   geom_bar(stat = "identity", width = 1) +
   coord_polar(theta = "y") +
   geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 5) +
@@ -735,6 +773,7 @@ Fig4a <- ggdraw() +
   draw_plot(inset_dry_pie, 0.05, 0.55, 0.3, 0.3) +  # Wet inset
   draw_plot(inset_wet_pie, 0.6, 0.05, 0.3, 0.3)     # Dry inset
 
+print(Fig4a)
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", ' Seasonal distribution of larval habitats positive for Anopheles larvae in Ibadan .pdf'), Fig4a, width = 11, height = 8)
 
 
@@ -744,24 +783,27 @@ anoph_data <- lav_overall %>%
   mutate(
     Anopheles_Caught = unlist(Anopheles_Caught),
     Season = unlist(season),
-    Settlement = unlist(`Settlement Type`)
+    Ward = unlist(`Ward.Name`)
   ) %>%
   filter(Anopheles_Caught == "Yes") %>%
-  group_by(`Settlement Type`, season) %>%
+  group_by(season,`Ward.Name`) %>%
   summarize(value = n(), .groups = "drop") %>%
-  dplyr::select(`Settlement Type`, season, value)
+  dplyr::select(`Ward.Name`, season, value)
 
 # Make plot
-Fig4b <- ggplot(anoph_data, aes(x = `Settlement Type`, y = value, fill = season)) +
+Fig4b <- ggplot(anoph_data, aes(x = `season`, y = value, fill = Ward.Name)) +
   geom_bar(stat = "identity") +
+  #facet_wrap(~season)+
   geom_text(aes(label = value), position = position_stack(vjust = 0.5), color = "white", size = 4) +
-  labs(title = "Distribution of larval positiv breeding Sites by Settlement and season",
-       x = "Settlement",
+  labs(title = "Distribution of larval positiv breeding Sites by ward and season",
+       x = "Ward",
        y = "Number of breeding sites") +
-  scale_fill_manual(values = c("Wet" = "#1f78b4", "Dry" = "sienna")) +
+  scale_fill_manual(values = c("Agugu" = "#1f78b4", "Olopomewa" = "sienna", "Challenge" = "plum")) +
   theme_manuscript()
 
-ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Distribution of larval positiv breeding Sites by Settlement and season.pdf'), Fig4b, width = 9, height = 8)
+print(Fig4b)
+
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Distribution of larval positiv breeding Sites by Ward and season.pdf'), Fig4b, width = 9, height = 8)
 
 
 #Figure 4C
@@ -776,21 +818,22 @@ lav_overall_1 <- lav_overall %>%
          Habitat_Positivity = ifelse(Anopheles_Caught == "Yes", 1, 0))
 
 ##Remove Informal settlement before running regression
-lav_reg <- lav_overall_1 %>% 
-  dplyr::filter(!settlement == "Informal")
+lav_reg <- lav_overall_1 %>%
+  dplyr::filter(!Settlement.Type == "Informal")
 
 ##Reorder level and factor of outcome
-lav_reg$habitat_type <- factor(
-  lav_reg$habitat_type,
+lav_reg$TypeSite <- factor(
+  lav_reg$TypeSite,
   levels = c(0, 1),
   labels = c("Permanent", "Temporary")
 )
 
 # Column name mapping 
-col_settlement   <- "settlement"      # slum / formal
+col_ward <- "Ward.Name"
+col_settlement   <- "Settlement.Type"      # slum / formal
 col_season       <- "season"         # dry / wet
-col_habitat_type <- "habitat_type"   # permanent / temporary
-col_outcome      <- "positive_habitat"  # 1 = positive, 0 = negative
+col_habitat_type <- "TypeSite"   # permanent / temporary
+col_outcome      <- "Habitat_Positivity"  # 1 = positive, 0 = negative
 
 # Ensure outcome is numeric 0/1
 lav_reg[[col_outcome]] <- as.integer(as.logical(lav_reg[[col_outcome]]))
@@ -802,6 +845,7 @@ modelseas <- glm(
   data = lav_reg,
   family = binomial
 )
+
 
 # Extract odds ratios with CI
 odds_by_season <- broom::tidy(modelseas, conf.int = TRUE, exponentiate = TRUE) %>%
@@ -851,7 +895,26 @@ odds_by_habitat <- broom::tidy(modelhab, conf.int = TRUE, exponentiate = TRUE) %
 
 odds_by_habitat
 
-unadj <- bind_rows(odds_by_settlement, odds_by_season, odds_by_habitat) %>%
+
+# Logistic regression model(Ward)
+modelward <- glm(
+  as.formula(paste(col_outcome, "~", col_ward)),
+  data = lav_reg,
+  family = binomial
+)
+
+# Extract odds ratios with CI
+odds_by_ward <- broom::tidy(modelward, conf.int = TRUE, exponentiate = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    factor = "Ward.Name",
+    level = gsub(paste0(col_ward), "", term)
+  ) %>%
+  dplyr::select(factor, level, odds_ratio = estimate, lower = conf.low, upper = conf.high)
+
+odds_by_ward
+
+unadj <- bind_rows( odds_by_season, odds_by_habitat, odds_by_ward) %>%
   dplyr::select(factor, level, odds_ratio, lower, upper)
 
 unadj$Type <- "Unadjusted"
@@ -885,6 +948,8 @@ Fig4c <- ggplot(unadj, aes(x = odds_ratio, y = level, color = Type)) +
   ) +
   theme_manuscript()
 
+print(Fig4c)
+
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), 'Log Regression of habitat positivity.pdf'), Fig4c, width = 10, height = 6) 
 
 
@@ -894,27 +959,66 @@ ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), 'Log Regression of habitat pos
 lav_den_sum_all <- read.csv(file.path(Entodir, "lav_density_dataset.csv"))
 
 Fig4d <- ggplot(lav_den_sum_all, aes(x = Breeding_Site_Recode, y = AvgLD)) +
-  geom_point(aes(color = `Settlement Type`, size = 4.5), , alpha = 0.7) +  
+  geom_point(aes(color = `Ward.Name`, size = 4.5), , alpha = 0.7) +  
   facet_wrap(~ `season`)+
-  scale_color_manual(values = c(Formal = "#f57362", Slum = "#f9caa7"))+
+  scale_color_manual(values = c(Olopomewa = "#f57362", Agugu = "#f9caa7", Challenge = "maroon"))+
   geom_text(aes(label = round(AvgLD, 2)), vjust = -1.2, hjust = 0.5, size = 3) + 
   geom_text(aes(label = Breeding_Site_Recode), vjust = -1.2, hjust = 0.5, size = 3) +
   scale_size_continuous(range = c(2, 10)) + 
-  labs(title = "Average Larval Density per Breeding Sites by settlement type ",
+  labs(title = "Average Larval Density per Breeding Sites by wards ",
        y = "Average Larval Density",
        size = "Average Larval Density") +
   guides(size = FALSE)+
   theme_manuscript()
 
-ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), 'Larval Density of Breeding sites by settlement.pdf'), Fig4d, width = 8, height = 6) 
+print(Fig4d)
+
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), 'Larval Density of Breeding sites by ward.pdf'), Fig4d, width = 8, height = 6) 
 
 
 ##Figures 4E and 4F(Pareto analysis of Anopheles-positive breeding sites)
 
 #Figure4E
-# Comppute Pareto data(Slum)
+# Compute Pareto data(All)
+pareto_data_all <- lav_den_sum_all %>%
+  group_by(Breeding_Site_Recode) %>%
+  summarise(
+    mean_AvgLD = mean(AvgLD, na.rm = TRUE),
+    max_AvgLD = max(AvgLD, na.rm = TRUE),
+    n_seasons = n_distinct(season),
+    n_wards = n_distinct(Ward.Name),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(mean_AvgLD)) %>%
+  mutate(
+    percent = 100 * mean_AvgLD / sum(mean_AvgLD, na.rm = TRUE),
+    cumulative_percent = cumsum(percent)
+  )
+
+pareto_data_all
+
+pareto_summary_season <- lav_den_sum_all %>%
+  group_by(season, Breeding_Site_Recode) %>%
+  summarise(
+    mean_AvgLD = mean(AvgLD, na.rm = TRUE),
+    max_AvgLD = max(AvgLD, na.rm = TRUE),
+    n_wards = n_distinct(Ward.Name),
+    .groups = "drop"
+  ) %>%
+  group_by(season) %>%
+  arrange(season, desc(mean_AvgLD)) %>%
+  mutate(
+    percent = 100 * mean_AvgLD / sum(mean_AvgLD, na.rm = TRUE),
+    cumulative_percent = cumsum(percent)
+  ) %>%
+  ungroup()
+
+pareto_summary_season
+
+
+# Compute Pareto data(Slum)
 pareto_data_slum <- lav_den_sum_all %>% 
-  dplyr::filter(`Settlement Type` == "Slum") %>%
+  dplyr::filter(`Ward.Name` == "Agugu") %>%
   arrange(desc(AvgLD), .by_group = TRUE) %>%    # sort within group
   mutate(
     CumSum = cumsum(AvgLD),
@@ -923,25 +1027,25 @@ pareto_data_slum <- lav_den_sum_all %>%
   ) %>%
   ungroup()
 
-##Summarize Breeding sites in Pareto data
-pareto_data_slum <- pareto_data_slum %>% 
-  #dplyr::filter(`Settlement Type` == "Slum") %>%
-  group_by(Breeding_Site_Recode) %>% 
-  summarise(
-    AvgLD = mean(AvgLD),
-    Total = first(Total)      # keep the original Total
-  ) %>% 
-  arrange(desc(AvgLD), .by_group = TRUE) %>%    # sort within group
-  mutate(
-    CumSum = cumsum(AvgLD),
-    Total = sum(AvgLD),
-    CumPerc = CumSum / Total * 100
-  ) %>%
-  ungroup()
+# ##Summarize Breeding sites in Pareto data
+# pareto_data_slum <- pareto_data_slum %>% 
+#   #dplyr::filter(`Settlement Type` == "Slum") %>%
+#   group_by(Breeding_Site_Recode) %>% 
+#   summarise(
+#     AvgLD = mean(AvgLD),
+#     Total = first(Total)      # keep the original Total
+#   ) %>% 
+#   arrange(desc(AvgLD), .by_group = TRUE) %>%    # sort within group
+#   mutate(
+#     CumSum = cumsum(AvgLD),
+#     Total = sum(AvgLD),
+#     CumPerc = CumSum / Total * 100
+#   ) %>%
+#   ungroup()
 
 
 # Reorder globally by AvgLD
-pareto_data_slum <- pareto_data_slum %>%
+pareto_data_all <- pareto_data_all %>%
   #group_by(`Settlement Type`) %>%
   arrange(desc(AvgLD)) %>%
   mutate(Breeding_Site_Recode = factor(Breeding_Site_Recode, levels = unique(Breeding_Site_Recode))) %>%
@@ -949,32 +1053,34 @@ pareto_data_slum <- pareto_data_slum %>%
 
 # Make Plot
 
-Fig4e <- ggplot(pareto_data_slum, aes(x = reorder(Breeding_Site_Recode, -AvgLD), y = AvgLD)) +
+Fig4e <- ggplot(pareto_summary_season %>% dplyr::filter(season == "Wet"), aes(x = reorder(Breeding_Site_Recode, -mean_AvgLD), y = mean_AvgLD)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  geom_line(aes(y = CumPerc * max(AvgLD)/100, group = 1), color = "red", size = 1) +
-  geom_point(aes(y = CumPerc * max(AvgLD)/100), color = "red", size = 2) +
+  geom_line(aes(y = cumulative_percent * max(mean_AvgLD)/100, group = 1), color = "red", size = 1) +
+  geom_point(aes(y = cumulative_percent * max(mean_AvgLD)/100), color = "red", size = 2) +
+  #facet_wrap( ~ season) +
   scale_y_continuous(
     name = "Average Larval Density",
-    limits = c(0, max(pareto_data_slum$AvgLD)),  # ensures main axis starts at 0
-    sec.axis = sec_axis(~ . * 100 / max(pareto_data_slum$AvgLD),
+    limits = c(0, max(pareto_data_all$mean_AvgLD)),  # ensures main axis starts at 0
+    sec.axis = sec_axis(~ . * 100 / max(pareto_data_all$mean_AvgLD),
                         name = "Cumulative %", 
                         breaks = seq(0, 100, 20))  # secondary axis from 0 to 100
   ) +
-  geom_hline(yintercept = 0.8 * max(pareto_data_slum$AvgLD), 
+  geom_hline(yintercept = 0.8 * max(pareto_data_all$mean_AvgLD), 
              linetype = "dashed", color = "darkgreen", size = 1) +
   labs(x = "Breeding Site Type", 
-       title = "Pareto Plot of Breeding Sites by Average Larval Density (Slum") +
+       title = "Pareto Plot of Breeding Sites by Average Larval Density (All") +
   theme_manuscript() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+print(Fig4e)
 
-ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", ' Pareto Plot of Breeding Sites by Average Larval Density (Slum) .pdf'), Fig4e, width = 9, height = 8)
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", ' Pareto Plot of Breeding Sites by Average Larval Density (Wet) .pdf'), Fig4e, width = 9, height = 8)
 
 
 
 # Compute Pareto data(Formal)
 pareto_data_formal <- lav_den_sum_all %>% 
-  dplyr::filter(`Settlement Type` == "Formal") %>%
+  dplyr::filter(`Ward.Name` == "Challenge") %>%
   arrange(desc(AvgLD), .by_group = TRUE) %>%    # sort within group
   mutate(
     CumSum = cumsum(AvgLD),
@@ -985,7 +1091,7 @@ pareto_data_formal <- lav_den_sum_all %>%
 
 ##Summarize Breeding sites in Pareto data
 pareto_data_formal <- pareto_data_formal %>% 
-  dplyr::filter(`Settlement Type` == "Formal") %>%
+  dplyr::filter(`Ward.Name` == "Challenge") %>%
   group_by(Breeding_Site_Recode) %>% 
   summarise(
     AvgLD = mean(AvgLD),
@@ -1027,6 +1133,7 @@ Fig4f <- ggplot(pareto_data_formal, aes(x = reorder(Breeding_Site_Recode, -AvgLD
   theme_manuscript() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+print(Fig4f)
 
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", ' Pareto Plot of Breeding Sites by Average Larval Density (Formal) .pdf'), Fig4f, width = 9, height = 8)
 
@@ -1047,6 +1154,34 @@ Olop_summary <- read.csv(file.path(Entodir, "Olop_summary.csv"))
 ##Merge all files
 den_summary_all <- rbind(Agudry_summary, Aguwet_summary, Chal_summary, Olop_summary)
 
+den_summary_all %>%
+  mutate(
+    # Option 1: mean as proxy
+    median_proxy = mean_density,
+    
+    # Option 2: min/max/mean weighted estimate
+    median_est = (min_density + 2 * mean_density + max_density) / 4,
+    
+    # Option 3: log-normal back-calculation
+    mu_log = log(mean_density^2 / sqrt(mean_density^2 + sd_density^2)),
+    median_lognormal = exp(mu_log)
+  )
+
+den_summary_all %>%
+  mutate(
+    # Option 1: Normal approximation
+    IQR_normal = 1.35 * sd_density,
+    
+    # Option 2: Range-based rough estimate
+    IQR_range = (max_density - min_density) / 2,
+    
+    # Option 3: Log-normal (best for skewed density data)
+    mu_log    = log(mean_density^2 / sqrt(mean_density^2 + sd_density^2)),
+    sigma_log = sqrt(log(1 + (sd_density^2 / mean_density^2))),
+    Q1        = exp(mu_log - 0.6745 * sigma_log),
+    Q3        = exp(mu_log + 0.6745 * sigma_log),
+    IQR_lognormal = Q3 - Q1
+  )
 ##Boxplot of breeding site densities
 # Convert to long format
 den_summary_long <- den_summary_all %>%
@@ -1060,21 +1195,21 @@ den_summary_long <- den_summary_all %>%
 # head(den_summary_long)
 
 ##Make boxplot
-Fig5a <- ggplot(den_summary_long, aes(x = settlment, y = Value, fill = settlment)) +
+Fig5a <- ggplot(den_summary_long, aes(x = Ward, y = Value, fill = Ward)) +
   geom_boxplot() +
   facet_wrap(~ season)+
-  scale_fill_manual(values = c(Formal = "#f57362", Slum = "#f9caa7"))+
+  scale_fill_manual(values = c(Olopomewa = "#f57362", Agugu = "#f9caa7", Challenge = "maroon"))+
   labs(
-    title = "Distribution of Breeding Site Densities by settlement and season",
+    title = "Distribution of Breeding Site Densities by ward and season",
     x = "Ward",
     y = "Breeding Site Density (sites/km²)"
   ) +
   theme_manuscript() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
+print(Fig5a)
 
-ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", ' Pareto Plot of Breeding Sites by Average Larval Density (Slum) .pdf'), Fig5a, width = 9, height = 8)
-
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Distribution of Breeding Site Densities by ward and season.pdf'), Fig5a, width = 9, height = 8)
 
 
 
@@ -1083,23 +1218,47 @@ ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", ' Pareto Plot of Breeding
 ##"Breeding site and Household Malaria Status analysis002.R"
 
 ##Read in final kernel weighted dataframe
-kernel_filtered <- read.csv(file.path(Entodir, "kernel_filtered.csv"))
 
+#kernel_filtered <- read.csv(file.path(Entodir, "kernel_filtered.csv"))
+##Agugu
+kernel_results_a <- read_csv(file.path(Lavplotsdir, "kernel_results_agugu.csv"))
+best_lambdas_a <- read_csv(file.path(Lavplotsdir, "best_lambdas_agugu.csv"))
+
+
+##Challenge
+kernel_results_c <- read_csv(file.path(Lavplotsdir, "kernel_results_challenge.csv"))
+best_lambdas_c <- read_csv(file.path(Lavplotsdir, "best_lambdas_challenge.csv"))
+kernel_results_c_d <- read_csv(file.path(Lavplotsdir, "kernel_results_drychallenge.csv"))
+best_lambdas_c_d <- read_csv(file.path(Lavplotsdir, "best_lambdas_drychallenge.csv"))
+
+
+##Olopomewa
+kernel_results_o <- read_csv(file.path(Lavplotsdir, "kernel_results_olopomewa.csv"))
+best_lambdas_o <- read_csv(file.path(Lavplotsdir, "best_lambdas_olopomewa.csv"))
+
+
+
+##Merge all data for plotting
+##Kernel dispersal plot
+kernel_final <- bind_rows(kernel_results_a, kernel_results_c, kernel_results_o, kernel_results_c_d)
+best_lambdas_all <- bind_rows(best_lambdas_a, best_lambdas_c, best_lambdas_o, best_lambdas_c_d)
 
 ##Making plots for manuscript
 # Plot
-Fig5b <- ggplot(kernel_filtered, aes(x = lambda, y = OR, color = settlement, linetype = settlement)) +
+Fig5b <- ggplot(kernel_final, aes(x = lambda, y = OR, color = study_source, linetype = study_source)) +
   
   # Main OR lines
   geom_line(linewidth = 1.5) +
   
   # Colors for settlements
-  scale_color_manual(values = c("Formal" = "#fe9c8f", "Slum" = "#f9caa7")) +
+  scale_color_manual(values = c("Agugu_combined" = "#fe9c8f", "Agugu_dry" = "#f9caa7",
+                                "Agugu_wet" = "lightblue", "Olopomewa_dry" = "plum",
+                                "Challenge_wet" = "cornflowerblue")) +
   
   # Vertical dashed lines at peak OR
   geom_vline(
-    data = peak_lambdas,
-    aes(xintercept = lambda_peak, color = "red"),
+    data = best_lambdas_all,
+    aes(xintercept = lambda, color = "red"),
     linetype = "dashed",
     linewidth = 0.5,
     inherit.aes = FALSE
@@ -1107,8 +1266,8 @@ Fig5b <- ggplot(kernel_filtered, aes(x = lambda, y = OR, color = settlement, lin
   
   # Label the λ values on x-axis at the peak
   geom_text(
-    data = peak_lambdas,
-    aes(x = lambda_peak, y = 1.0, label = lambda_peak, color = settlement),
+    data = best_lambdas_all,
+    aes(x = lambda, y = 1.0, label = lambda, color = study_source),
     vjust = 1.5,
     hjust = -0.5,
     inherit.aes = FALSE
@@ -1120,7 +1279,7 @@ Fig5b <- ggplot(kernel_filtered, aes(x = lambda, y = OR, color = settlement, lin
   # Label OR = 1 line (fix with inherit.aes = FALSE)
   geom_text(
     data = data.frame(
-      x = max(kernel_filtered$lambda) + 5, 
+      x = max(kernel_final$lambda) + 5, 
       y = 1
     ),
     aes(x = x, y = y, label = paste0("OR = ", y)),
@@ -1129,7 +1288,7 @@ Fig5b <- ggplot(kernel_filtered, aes(x = lambda, y = OR, color = settlement, lin
     vjust = 1.2,
     inherit.aes = FALSE
   ) +
-  
+  coord_cartesian(ylim = c(0.95, 1.5)) +
   # Theme and labels
   theme_manuscript() +
   labs(
@@ -1139,6 +1298,38 @@ Fig5b <- ggplot(kernel_filtered, aes(x = lambda, y = OR, color = settlement, lin
     title = "Estimated mosquito flight range from malaria risk"
   )
 
+print(Fig5b)
+
 ggsave(paste0(Lavplotsdir,"/", Sys.Date(), "/", 'kernel decay by buffer distance.pdf'), Fig5b, width = 8, height = 6)
 
+
+#New Figure 5B/C
+best_lambdas_plot <- best_lambdas_all %>%
+  mutate(
+    study_source = factor(study_source),
+    label = paste0(
+      "lambda = ", lambda, " m; ",
+      "n = ", n_households, "; habitats = ", n_habitats
+    )
+  )
+
+Fig5ba <- ggplot(best_lambdas_plot, aes(x = OR, y = study_source, color = study_source)) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "grey35") +
+  geom_errorbarh(
+    aes(xmin = OR_low95, xmax = OR_high95),
+    height = 0.18,
+    linewidth = 0.9
+  ) +
+  geom_point(size = 3) +
+  scale_x_log10() +
+  theme_manuscript() +
+  labs(
+    x = "Odds ratio per 1 SD increase in exposure, log scale",
+    y = NULL,
+    title = "Association at best-fitting distance-decay scale"
+  )
+
+print(Fig5ba)
+
+ggsave(paste0(Lavplotsdir,"/", Sys.Date(), "/", 'Association at best-fitting distance-decay scale.pdf'), Fig5ba, width = 8, height = 6)
 

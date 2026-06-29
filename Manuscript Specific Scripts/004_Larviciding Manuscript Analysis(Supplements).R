@@ -1,6 +1,6 @@
 #loadpath
 user <- Sys.getenv("USERNAME")
-Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
+Drive <- file.path(gsub("[//]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
 shapefileDir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan"
 Entodir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan/kano_ibadan_ento"
 Lavplotsdir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/projects/Manuscripts/ongoing/Larviciding Manuscript/New Manuscript Sections"
@@ -60,6 +60,8 @@ S1A <- ggplot(data = breeding_site_sum_dry, aes(x = "", y = SitesVisited, fill =
   theme_void() +  
   theme(legend.position = "right") +  
   ggtitle("Number and type of breeding sites visited in Ibadan, Jan-March, 2023")
+
+print(S1A)
 
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), 'dry season breeding sites visited in Ibadan2.pdf'), S1A, width = 8, height = 6)
 
@@ -122,6 +124,8 @@ S1B <- ggplot(data = breeding_site_sum_wet, aes(x = "", y = SitesVisited, fill =
   theme_void() +  
   theme(legend.position = "right") +  
   ggtitle("Number and type of breeding sites visited in Ibadan, July-August, 2024")
+
+print(S1B)
 
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), 'wet season breeding sites visited in Ibadan2.pdf'), S1B, width = 8, height = 6)
 
@@ -228,10 +232,16 @@ lav_mol_df_all <- lav_mol_df_all %>%
   mutate(Species = recode(Species,
                           "An_coluzii" = "An_coluzzii"))
 
-#Summarize data by season
+# Summarize data by season and species, and add proportions
 season_summary <- lav_mol_df_all %>%
   group_by(season, Species) %>%
-  summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop")
+  summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  group_by(season) %>%
+  mutate(
+    season_total = sum(total_count),
+    proportion = total_count / season_total * 100
+  ) %>%
+  ungroup()
 
 season_summary
 
@@ -260,7 +270,7 @@ mean(lav_physicodf_dry_wet$pH, na.rm = TRUE)
 
 # Compute mean and SD by season(S1E)
 summary_pH_overall <- lav_physicodf_dry_wet %>%
-  group_by(season, Anopheles_Caught) %>%
+  group_by(Ward.Name, season, Anopheles_Caught) %>%
   summarise(
     mean_pH = mean(pH, na.rm = TRUE),
     sd_pH = sd(pH, na.rm = TRUE),
@@ -272,7 +282,7 @@ summary_pH_overall <- lav_physicodf_dry_wet %>%
 
 ##Make seasonal plot
 S1E <- ggplot(summary_pH_overall,
-                 aes(x = season,
+                 aes(x = Ward.Name,
                      y = mean_pH,
                      color = Anopheles_Caught,
                      group = Anopheles_Caught)) +
@@ -292,7 +302,7 @@ S1E <- ggplot(summary_pH_overall,
     vjust = -1,
     size = 3
   ) +
-  #facet_wrap(~ season) +
+  facet_wrap(~ season) +
   scale_color_manual(
     name   = "Anopheles larvae",
     values = c(
@@ -311,6 +321,8 @@ S1E <- ggplot(summary_pH_overall,
     color = "Anopheles Larvae"
   ) +
   theme_manuscript()
+
+print(S1E)
 
 ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'pH Distribution of breeding sites(overall).pdf'), S1E, width = 8, height = 6)
 
@@ -377,3 +389,471 @@ ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'pH Distribution of breed
 
 
 
+###New physicochemical plots for positive breeding sites (22nd June, 2026)
+##Supplement 3A: Percentage of breeding site by water nature
+##Extract for only positive sites
+lav_physicodf_dry_wet <- read.csv(file.path(Entodir, "lav_physico_dataset.csv"))
+
+poslav_physicodf_dry_wet <- lav_physicodf_dry_wet %>% 
+  dplyr::filter(Anopheles_Caught == "Yes")
+##Recode and clean variable names
+#Water Origin
+poslav_physicodf_dry_wet <- poslav_physicodf_dry_wet %>%
+  mutate(
+    origin_clean = case_when(
+      # Rain categories
+      str_detect(`Origin.of.water`, regex("^rain", ignore_case = TRUE)) ~ "Rain",
+      
+      # River
+      str_detect(`Origin.of.water`, regex("river", ignore_case = TRUE)) ~ "River/Stream",
+      
+      # Drainage / gutter / ditch
+      str_detect(`Origin.of.water`, regex("drain|ditch|gutter", ignore_case = TRUE)) ~ "Drainage/Gutter",
+      
+      # Waste water / sewage
+      str_detect(`Origin.of.water`, regex("waste|sewage", ignore_case = TRUE)) ~ "Waste water/Sewage",
+      
+      # Domestic / Household
+      str_detect(`Origin.of.water`, regex("domestic|household", ignore_case = TRUE)) ~ "Household/Domestic",
+      
+      # Man-made containers
+      str_detect(`Origin.of.water`, regex("man made|manmade", ignore_case = TRUE)) ~ "Man-made",
+      
+      # Borehole
+      str_detect(`Origin.of.water`, regex("borehole", ignore_case = TRUE)) ~ "Borehole",
+      
+      # Well
+      str_detect(`Origin.of.water`, regex("well", ignore_case = TRUE)) ~ "Well",
+      
+      # Default
+      TRUE ~ "Other/Unknown"
+    )
+  )
+
+
+poslav_physicodf_dry_wet <- poslav_physicodf_dry_wet %>%
+  mutate(waterorigin4 = case_when(
+    origin_clean == "Rain" ~ "Rainwater",
+    
+    origin_clean %in% c("Borehole", "Well") ~ "Groundwater",
+    
+    origin_clean == "River/Stream" ~ "Surface water",
+    
+    origin_clean %in% c("Drainage/Gutter",
+                        "Household/Domestic",
+                        "Man-made",
+                        "Waste water/Sewage",
+                        "Other/Unknown") ~ "Anthropogenic/Domestic",
+    
+    TRUE ~ "Other"
+  ))
+
+
+# Calculate counts and percentages within each Settlement Type(by season)
+poslav_physicodf_plot <- poslav_physicodf_dry_wet %>%
+  group_by(`Ward.Name`, season, waterorigin4) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(`Ward.Name`, season) %>%
+  mutate(
+    percent = count / sum(count) * 100,
+    waterorigin4_ordered = fct_reorder(waterorigin4, desc(count))
+  ) %>%
+  ungroup()
+
+
+##Ensure order is preserved
+poslav_physicodf_plot$waterorigin4_ordered <- factor(
+  poslav_physicodf_plot$waterorigin4_ordered,
+  levels = c(
+    "Rainwater",
+    "Groundwater",
+    "Anthropogenic/Domestic",
+    "Surface water"
+  )
+)
+
+# Make Plot
+Supl3a <- ggplot(poslav_physicodf_plot, aes(x = `Ward.Name`, y = percent, fill = waterorigin4_ordered)) +
+  geom_bar(stat = "identity", color = "black", width = 0.7) +
+  geom_text(aes(label = paste0(count, " (", round(percent, 1), "%)")),
+            position = position_stack(vjust = 0.5), 
+            size = 3)  +
+  facet_grid(~season) +
+  scale_y_continuous(labels = percent_format(scale = 1)) +  
+  scale_fill_brewer(palette = "Set3") +
+  labs(
+    x = "Ward",
+    y = "Percentage of Water Sources",
+    fill = "Water Origin",
+    title = "Distribution of Water Origins by Ward"
+  ) +
+  theme_manuscript()
+
+print(Supl3a)
+
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Water Origin of breeding sites.pdf'), Fig3d, width = 8, height = 6)
+
+
+#Suppl 3b: Percentage of breeding sites by water nature
+##Water Nature
+#table(lav_physicodf_dry_wet$waternature)
+
+poslav_physicodf_dry_wet <- poslav_physicodf_dry_wet %>%
+  mutate(waternature = case_when(
+    `Water.nature` == "Clear" ~ "Clean",
+    
+    `Water.nature` %in% c("Clean", "clean") ~ "Clear",
+    
+    `Water.nature` %in% c("polluted",
+                          "Polluted") ~ "Polluted"
+  ))
+
+# Calculate counts and percentages within each Settlement Type
+poslav_physicodf_plot2 <- poslav_physicodf_dry_wet %>%
+  dplyr::group_by(`Ward.Name`, season, waternature) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(`Ward.Name`, season) %>%
+  mutate(
+    percent = count / sum(count) * 100,
+    waternature_ordered = fct_reorder(waternature, desc(count))
+  ) %>%
+  ungroup()
+
+#Make Plot by Season and Settlement Type
+Supl3b <- ggplot(
+  poslav_physicodf_plot2,
+  aes(x = `Ward.Name`, y = percent, fill = waternature_ordered)
+) +
+  geom_col(width = 0.7, color = "black") +
+  geom_text(aes(label = paste0(count, " (", round(percent, 1), "%)")),
+            position = position_stack(vjust = 0.5), 
+            size = 3) +
+  facet_wrap(~season) +
+  scale_fill_manual(
+    values = c("Clear" = "#a6cee3", "Polluted" = "#d2b48c")
+  ) +
+  labs(
+    title = "Nature of Water by Settlement Type and Season",
+    x = "Season",
+    y = "Count",
+    fill = "Water Nature"
+  ) +
+  theme_manuscript() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    strip.text = element_text(face = "bold")
+  )
+
+print(Supl3b)
+
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Nature of Water by Ward and Season.pdf'), Fig3e, width = 8, height = 6)
+
+
+
+
+##Sunlight
+poslav_physicodf_dry_wet <- poslav_physicodf_dry_wet %>%
+  mutate(sunlight = case_when(
+    `Sunlight.exposure` %in% c("Yes", 
+                               "sunlit",
+                               "Sunlit",
+                               "sunnlit") ~ "Yes",
+    
+    `Sunlight.exposure` %in% c("No",
+                               "Shaded") ~ "No"
+  ))
+
+table(poslav_physicodf_dry_wet$sunlight)
+
+#Suppl 3C: Percentage of breeding site type by vegetation
+##Vegetation
+table(poslav_physicodf_dry_wet$Vegetation)
+
+poslav_physicodf_dry_wet <- poslav_physicodf_dry_wet %>%
+  mutate(Vegetation = case_when(
+    `Vegetation` %in% c("Yes", 
+                        "yes",
+                        "submerge",
+                        "Submerge") ~ "Yes",
+    
+    `Vegetation` %in% c("No",
+                        "no") ~ "No"
+  ))
+
+
+# Calculate counts and percentages within each Settlement Type
+poslav_physicodf_plot3 <- poslav_physicodf_dry_wet %>%
+  group_by(season, `Ward.Name`, Vegetation) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(season, `Ward.Name`) %>%
+  mutate(
+    percent = count / sum(count) * 100,
+    Vegetation_ordered = fct_reorder(Vegetation, desc(count))
+  ) %>%
+  ungroup()
+
+poslav_physicodf_plot3 <- poslav_physicodf_plot3 %>%
+  mutate(`n (%)` = paste0(count, " (", round(percent, 1), "%)"))
+
+
+##Ensure order is preserved
+poslav_physicodf_plot3$Vegetation_ordered <- factor(
+  poslav_physicodf_plot3$Vegetation_ordered,
+  levels = c("Yes", "No")
+)
+
+Supl3c <- ggplot(poslav_physicodf_plot3, 
+                aes(x = as.factor(`Ward.Name`), 
+                    y = percent, 
+                    fill = Vegetation_ordered)) +
+  geom_bar(stat = "identity",
+           position = position_stack(reverse = TRUE)) +   # <-- enforce stack order
+  geom_text(aes(label = `n (%)`),
+            position = position_stack(vjust = 0.5, reverse = TRUE),  # match bar
+            size = 3) +
+  scale_fill_manual(values = c("Yes" = "#b2df8a", "No" = "cornsilk")) +
+  labs(
+    title = "Proportion of Breeding Sites covered with Vegetation",
+    x = "Ward",
+    y = "Proportion (%)",
+    fill = "Vegetation Presence"
+  ) +
+  facet_wrap(~ season) +
+  theme_manuscript()
+
+print(Supl3c)
+
+ggsave(paste0(Lavplotsdir, '/plots/', Sys.Date(), "/", 'Vegetation Cover by Settlement Type.pdf'), Fig3f, width = 8, height = 9)
+
+
+##Overall pH summaries
+# Compute mean and SD by season(S1E)
+sum_pH_overall_seas <- lav_physicodf_dry_wet %>%
+  group_by(season) %>%
+  summarise(
+    mean_pH = mean(pH, na.rm = TRUE),
+    sd_pH = sd(pH, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(round(mean_pH, 1), " ± ", round(sd_pH, 1))
+  )
+
+sum_pH_overall_ward <- lav_physicodf_dry_wet %>%
+  group_by(Ward.Name) %>%
+  summarise(
+    mean_pH = mean(pH, na.rm = TRUE),
+    sd_pH = sd(pH, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(round(mean_pH, 1), " ± ", round(sd_pH, 1))
+  )
+
+
+kruskal.test(pH ~ season, data = lav_physicodf_dry_wet)
+kruskal.test(pH ~ Ward.Name, data = lav_physicodf_dry_wet)
+
+
+#Checking for longitudinal nature of larval prospection
+
+lav_df_wet_check <- lav_df_wet %>% 
+  dplyr::select(X, Date, WardName, X_Breeding.site.coordinates_latitude, X_Breeding.site.coordinates_longitude)
+
+
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(lubridate)
+
+# ── 1. Prepare data ──────────────────────────────────────────────────────────
+df <- lav_df_wet_check %>%
+  mutate(
+    DateTime = mdy_hm(Date),
+    Day      = as.Date(DateTime),
+    Zone     = ifelse(X_Breeding.site.coordinates_latitude > 7.36, "North (~7.38°N)", "South (~7.34°N)")
+  )
+
+# Convert to sf object
+df_sf <- st_as_sf(df,
+                  coords = c("X_Breeding.site.coordinates_longitude",
+                             "X_Breeding.site.coordinates_latitude"),
+                  crs = 4326
+)
+
+# ── 2. Load your shapefile (swap path when ready) ────────────────────────────
+# shp <- st_read("path/to/your_shapefile.shp") %>% st_transform(crs = 4326)
+
+# ── 3. Static ggplot2 map ────────────────────────────────────────────────────
+ggplot() +
+  # Uncomment when shapefile is ready:
+  # geom_sf(data = shp, fill = "grey92", color = "grey60", linewidth = 0.4) +
+  geom_sf(data = df_sf,
+          aes(color = Zone, shape = Zone),
+          size = 2, alpha = 0.75) +
+  facet_wrap(~Day, ncol = 4) +
+  scale_color_manual(values = c("North (~7.38°N)" = "#1D9E75",
+                                "South (~7.34°N)" = "#378ADD")) +
+  scale_shape_manual(values = c("North (~7.38°N)" = 16,
+                                "South (~7.34°N)" = 17)) +
+  labs(
+    title    = "Larval sampling locations by day",
+    subtitle = "Two zones sampled simultaneously on most days",
+    color    = "Zone", shape = "Zone",
+    x = "Longitude", y = "Latitude"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    legend.position  = "bottom",
+    panel.grid.minor = element_blank(),
+    strip.text       = element_text(face = "bold", size = 9)
+  )
+
+ggsave("sampling_points_by_day.png", width = 14, height = 10, dpi = 300)
+
+# ── 4. Interactive leaflet map (all days together) ───────────────────────────
+pal <- colorFactor(
+  palette = c("#1D9E75", "#378ADD"),
+  domain  = df$Zone
+)
+
+m <- leaflet(df) %>%
+  addProviderTiles(providers$OpenStreetMap) %>%
+  # Uncomment when shapefile is ready:
+  # addPolygons(data = shp, color = "#555", weight = 1.5,
+  #             fillColor = "transparent", group = "Study area") %>%
+  addCircleMarkers(
+    lng    = ~X_Breeding.site.coordinates_longitude,
+    lat    = ~X_Breeding.site.coordinates_latitude,
+    radius = 5,
+    color  = ~pal(Zone),
+    fillOpacity = 0.8,
+    stroke = FALSE,
+    popup  = ~paste0(
+      "<b>", Date, "</b><br>",
+      "Zone: ", Zone, "<br>",
+      "Lat: ", round(X_Breeding.site.coordinates_latitude, 5), "<br>",
+      "Lon: ", round(X_Breeding.site.coordinates_longitude, 5)
+    )
+  ) %>%
+  addLegend("bottomright",
+            pal    = pal,
+            values = ~Zone,
+            title  = "Sampling zone"
+  ) %>%
+  addLayersControl(
+    overlayGroups = c("Study area"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+
+
+library(leaflet)
+library(htmlwidgets)
+library(lubridate)
+library(tidyverse)
+
+ag_pts <- st_read("C:/Users/ebamgboye/OneDrive - Loyola University Chicago/Documents/IB_KA_field_study-main/IB_KA_field_study-main/Larvalsites_Agugu_Wet.shp")
+ch_pts <- st_read("C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan/kano_ibadan_ento/Challenge wetseason larval data.shp")
+
+# ── Prep data ────────────────────────────────────────────────────────────────
+library(leaflet)
+library(htmlwidgets)
+library(lubridate)
+library(tidyverse)
+library(sf)
+
+# ── Prep data ────────────────────────────────────────────────────────────────
+df <- lav_df_wet_check %>%
+  mutate(
+    DateTime = mdy_hm(Date),
+    Day      = as.character(as.Date(DateTime)),
+    Zone     = ifelse(X_Breeding.site.coordinates_latitude > 7.36,
+                      "North", "South")
+  )
+
+# ── Ensure shapefiles are in WGS84 (EPSG:4326) to match leaflet ──────────────
+df_ib_c <- st_transform(df_ib_c, crs = 4326)
+df_ib_a <- st_transform(df_ib_a, crs = 4326)
+
+# ── Color palette by date ────────────────────────────────────────────────────
+dates     <- sort(unique(df$Day))
+pal_color <- colorFactor(
+  palette = colorRampPalette(c("#1D9E75", "#378ADD", "#D85A30",
+                               "#D4537E", "#BA7517", "#534AB7",
+                               "#639922", "#E24B4A", "#888780",
+                               "#5DCAA5", "#F09595", "#85B7EB"))(length(dates)),
+  domain = dates
+)
+
+# ── Build map ────────────────────────────────────────────────────────────────
+m <- leaflet() %>%
+  addProviderTiles(providers$OpenStreetMap) %>%
+  fitBounds(
+    lng1 = min(df$X_Breeding.site.coordinates_longitude) - 0.005,
+    lat1 = min(df$X_Breeding.site.coordinates_latitude)  - 0.005,
+    lng2 = max(df$X_Breeding.site.coordinates_longitude) + 0.005,
+    lat2 = max(df$X_Breeding.site.coordinates_latitude)  + 0.005
+  ) %>%
+  
+  # ── Shapefiles as toggleable layers ────────────────────────────────────────
+  addPolygons(
+    data        = df_ib_c,
+    color       = "#534AB7",       # purple border
+    weight      = 2,
+    fillColor   = "#534AB7",
+    fillOpacity = 0.1,
+    group       = "df_ib_c",
+    popup       = ~paste0("<b>Site:</b> ", if("name" %in% names(df_ib_c)) name else "df_ib_c")
+  ) %>%
+  addPolygons(
+    data        = df_ib_a,
+    color       = "#D85A30",       # coral border
+    weight      = 2,
+    fillColor   = "#D85A30",
+    fillOpacity = 0.1,
+    group       = "df_ib_a",
+    popup       = ~paste0("<b>Site:</b> ", if("name" %in% names(df_ib_a)) name else "df_ib_a")
+  )
+
+# ── Add sampling points per date ─────────────────────────────────────────────
+for (d in dates) {
+  df_day <- df %>% filter(Day == d)
+  m <- m %>%
+    addCircleMarkers(
+      data        = df_day,
+      lng         = ~X_Breeding.site.coordinates_longitude,
+      lat         = ~X_Breeding.site.coordinates_latitude,
+      radius      = 6,
+      color       = pal_color(d),
+      fillColor   = pal_color(d),
+      fillOpacity = 0.85,
+      stroke      = TRUE,
+      weight      = 1.5,
+      opacity     = 1,
+      group       = d,
+      popup       = ~paste0(
+        "<b>Date:</b> ", Date,  "<br>",
+        "<b>Zone:</b> ", Zone,  "<br>",
+        "<b>Lat:</b> ",  round(X_Breeding.site.coordinates_latitude,  5), "<br>",
+        "<b>Lon:</b> ",  round(X_Breeding.site.coordinates_longitude, 5)
+      )
+    )
+}
+
+# ── Legend + layer toggle ────────────────────────────────────────────────────
+m <- m %>%
+  addLegend(
+    position = "bottomright",
+    pal      = pal_color,
+    values   = df$Day,
+    title    = "Sampling date",
+    opacity  = 0.9
+  ) %>%
+  addLayersControl(
+    overlayGroups = c("df_ib_c", "df_ib_a", dates),  # shapefiles + dates all toggleable
+    options       = layersControlOptions(collapsed = FALSE)
+  )
+
+# ── Save and open ─────────────────────────────────────────────────────────────
+saveWidget(m, "sampling_map_with_shapefiles.html", selfcontained = TRUE)
+browseURL("sampling_map_with_shapefiles.html")

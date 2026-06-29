@@ -1,9 +1,45 @@
-#loadpath
-user <- Sys.getenv("USERNAME")
-Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
-shapefileDir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan"
-Entodir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan/kano_ibadan_ento"
-Lavplotsdir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/projects/Manuscripts/ongoing/Larviciding Manuscript/New Manuscript Sections"
+# #loadpath
+# user <- Sys.getenv("USERNAME")
+# Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
+# shapefileDir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan"
+# 
+# Entodir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/data/nigeria/kano_ibadan/kano_ibadan_ento/LManuscript"
+# Lavplotsdir <- "C:/Users/ebamgboye/Urban Malaria Proj Dropbox/urban_malaria/projects/Manuscripts/ongoing/Larviciding Manuscript/New Manuscript Sections"
+# Load paths that work across both laptops
+load_paths <- function() {
+  home <- normalizePath(Sys.getenv("USERPROFILE"), winslash = "/", mustWork = TRUE)
+  
+  project_root <- file.path(
+    home,
+    "Urban Malaria Proj Dropbox",
+    "urban_malaria"
+  )
+  
+  list(
+    user = Sys.getenv("USERNAME"),
+    
+    shapefileDir = file.path(
+      project_root,
+      "data/nigeria/kano_ibadan"
+    ),
+    
+    Entodir = file.path(
+      project_root,
+      "data/nigeria/kano_ibadan/kano_ibadan_ento/LManuscript"
+    ),
+    
+    Lavplotsdir = file.path(
+      project_root,
+      "projects/Manuscripts/ongoing/Larviciding Manuscript/New Manuscript Sections"
+    )
+  )
+}
+
+paths <- load_paths()
+
+shapefileDir <- paths$shapefileDir
+Entodir <- paths$Entodir
+Lavplotsdir <- paths$Lavplotsdir
 
 ##load packages and themes
 source("functions.R")
@@ -27,32 +63,49 @@ library(rJava)
 
 ##MaxEnt 01- Retrieve occurence points, visualize and ensure they fit into shapefile
 #Load occurence data
-agugu_lav_data_wet <- read.csv(file.path(Entodir, "Wet Season Data_Ibadan", "lav_coords_bsw1.csv"))
-agugu_lav_data_dry <- read.csv(file.path(Entodir, "lav_coords_bs1.csv"))
+#agugu_lav_data_wet <- read.csv(file.path(Entodir, "Wet Season Data_Ibadan", "lav_coords_bsw1.csv"))
+agugu_lav_data_wet <- st_read("C:/Users/ebamgboye/OneDrive - Loyola University Chicago/Documents/IB_KA_field_study-main/IB_KA_field_study-main/Agugu_Larvalsites_wet.gpkg")
+
+#agugu_lav_data_dry <- read.csv(file.path(Entodir, "lav_coords_bs1.csv"))
+agugu_lav_data_dry <- st_read("C:/Users/ebamgboye/OneDrive - Loyola University Chicago/Documents/IB_KA_field_study-main/IB_KA_field_study-main/Agugu_Larvalsites_dry.gpkg")
 
 ##Add season column
 agugu_lav_data_wet$season <- "Wet"
 agugu_lav_data_dry$season <- "Dry"
 
+##Extract necessary columns
+agugu_lav_data_wet_df <- agugu_lav_data_wet %>% 
+  dplyr::select(WardName, Anopheles_Caught, season, geom)
+
+agugu_lav_data_dry_df <- agugu_lav_data_dry %>% 
+  dplyr::select(Locality, Anopheles_Caught, season, geom)
+
 ##Rename column names before merging
-agugu_lav_data_wet <- agugu_lav_data_wet %>%
+agugu_lav_data_dry_df <- agugu_lav_data_dry_df %>%
   rename(
-    bs_label = bs_labelw,
-    anoph    = anophw
+    WardName = Locality,
+    #anoph    = anophw
   )
 
-agugu_lav_data_dry <- agugu_lav_data_dry %>%
-  rename(
-    anoph = anophd
-  )
+# agugu_lav_data_dry <- agugu_lav_data_dry %>%
+#   rename(
+#     anoph = anophd
+#   )
 
-agugu_lav_data <- rbind(agugu_lav_data_wet, agugu_lav_data_dry)
+agugu_lav_data <- rbind(agugu_lav_data_wet_df, agugu_lav_data_dry_df)
 
 ag_anopheles_sites <- agugu_lav_data %>% 
-  dplyr::filter(anoph == "Yes")
+  dplyr::filter(Anopheles_Caught == "Yes")
+
+##Extract coordinates
+coords <- sf::st_coordinates(ag_anopheles_sites)
+
+ag_anopheles_sites$X <- coords[, 1]
+ag_anopheles_sites$Y <- coords[, 2]
 
 # Keep only latitude and longitude columns and rename
-occurrences_in_agugu <- ag_anopheles_sites[, 2:3]
+occurrences_in_agugu <- ag_anopheles_sites[, 5:6]
+occurrences_in_agugu <- sf::st_drop_geometry(occurrences_in_agugu)
 colnames(occurrences_in_agugu) <- c("lon", "lat")
 
 
@@ -88,7 +141,7 @@ ggplot() +
 ##MaxEnt 02-Environmental Variable extractions
 ##Here is the output environmental stack of predictor variables
 ##This is run in the script titled: "MaxEnt script_02_Env_covariates_Agugu.R"
-predictors_a_subset <- rast("C:/Users/ebamgboye/OneDrive - Loyola University Chicago/Documents/IB_KA_field_study-main/IB_KA_field_study-main/predictors_a_subset.tif")
+predictors_a_subset <- rast(file.path(Entodir, "predictors_a_subset.tif"))
 
 ##Bring raster names from script 02
 vars_keep_vec <- read.csv(file.path(Entodir, "variable_names.csv"))
@@ -149,7 +202,7 @@ head(occ_vals)
 ##Add raster layer names to occurence values
 names(occ_vals) <- predictor_a_names
 
-##This might not be necessary. Raster isn't used at this point##
+
 ##Replace rows with NA
  # For lyr.1 use mean
  occ_vals$lyr.1[is.na(occ_vals$lyr.1)] <- 
@@ -289,7 +342,7 @@ if (cat_name %in% names(wet_stack)) {
 # -------------------------------
 # Extract raster values at wet season occurrence points 
 # # -------------------------------
-occ_wet <- occ_coords[1:15, ]
+occ_wet <- occ_coords[1:17, ]
 occ_vals_wet <- raster::extract(wet_stack, occ_wet)
 
 ##Rename Wet Stack Raster
@@ -321,12 +374,42 @@ set.seed(123)
 jkaw <- dismo::maxent(
   x = wet_stack, 
   p = occ_wet, 
+  path = "maxent_wet_output",
   args    = c(
     "jackknife=true",          
     "replicates=5",            
     "replicatetype=bootstrap",
     "randomseed=true" 
   )
+)
+
+##Visualize response curves
+jkaw_single <- dismo::maxent(
+  x = wet_stack,
+  p = occ_wet,
+  args = c(
+    "jackknife=true",
+    "responsecurves=true",
+    "randomseed=true"
+  )
+)
+
+dismo::response(jkaw_single)
+library(dismo)
+
+top3_vars <- jkaw_contrib_matrix %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("variable") %>%
+  arrange(desc(`species (average)`)) %>%
+  slice_head(n = 3) %>%
+  mutate(variable = sub("\\.contribution$", "", variable)) %>%
+  pull(variable)
+
+top3_vars
+
+dismo::response(
+  jkaw_single,
+  var = top3_vars
 )
 
 ##Make visualizations of variable contribution
@@ -520,6 +603,146 @@ ggplot() +
 
 dev.off()
 
+
+##Response Curve
+library(raster)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+
+top3_vars <- jkaw_contrib_matrix %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("variable") %>%
+  arrange(desc(`species (average)`)) %>%
+  slice_head(n = 3) %>%
+  mutate(variable = sub("\\.contribution$", "", variable)) %>%
+  pull(variable)
+
+wet_df <- as.data.frame(wet_stack, na.rm = TRUE)
+
+make_response_curve <- function(model, data, var, n = 100) {
+  base <- data %>%
+    summarise(across(
+      everything(),
+      ~ median(.x, na.rm = TRUE)
+    ))
+  
+  x_seq <- seq(
+    min(data[[var]], na.rm = TRUE),
+    max(data[[var]], na.rm = TRUE),
+    length.out = n
+  )
+  
+  pred_data <- base[rep(1, n), ]
+  pred_data[[var]] <- x_seq
+  
+  pred_data$response <- predict(model, pred_data)
+  pred_data$variable <- var
+  pred_data$x <- x_seq
+  
+  pred_data
+}
+
+response_df <- map_dfr(
+  top3_vars,
+  ~ make_response_curve(
+    model = jkaw_single,
+    data = wet_df,
+    var = .x
+  )
+)
+
+pdf("Agugu Response Curve plot.pdf", width = 12, height = 6)
+
+ggplot(response_df, aes(x = x, y = response)) +
+  geom_line(linewidth = 1.1, color = "steelblue") +
+  facet_wrap(~ variable, scales = "free_x") +
+  theme_manuscript() +
+  labs(
+    x = NULL,
+    y = "Predicted suitability",
+    title = "Response curves for top 3 predictor variables"
+  )
+
+dev.off()
+
+
+##Response curve for bootstrap
+library(dplyr)
+library(purrr)
+library(tidyr)
+library(ggplot2)
+
+jkaw_models <- slot(jkaw, "models")
+length(jkaw_models)
+
+make_boot_response <- function(models, vars, env_df, n = 100) {
+  
+  base_row <- env_df %>%
+    summarise(across(everything(), ~ median(.x, na.rm = TRUE)))
+  
+  map_dfr(vars, function(v) {
+    
+    x_seq <- seq(
+      min(env_df[[v]], na.rm = TRUE),
+      max(env_df[[v]], na.rm = TRUE),
+      length.out = n
+    )
+    
+    newdata <- base_row[rep(1, n), , drop = FALSE]
+    newdata[[v]] <- x_seq
+    
+    map_dfr(seq_along(models), function(b) {
+      
+      pred <- predict(models[[b]], newdata)
+      
+      tibble(
+        bootstrap = b,
+        variable = v,
+        predictor_value = x_seq,
+        suitability = as.numeric(pred)
+      )
+    })
+  })
+}
+
+boot_response_df <- make_boot_response(
+  models = jkaw_models,
+  vars = top3_vars,
+  env_df = wet_df,
+  n = 100
+)
+
+response_summary <- boot_response_df %>%
+  group_by(variable, predictor_value) %>%
+  summarise(
+    mean_suitability = mean(suitability, na.rm = TRUE),
+    lower = quantile(suitability, 0.025, na.rm = TRUE),
+    upper = quantile(suitability, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+pdf("Agugu Response Curve plot.pdf", width = 12, height = 6)
+
+ggplot(response_summary, aes(x = predictor_value, y = mean_suitability)) +
+  geom_ribbon(
+    aes(ymin = lower, ymax = upper),
+    fill = "#9fb6d9",
+    alpha = 0.45
+  ) +
+  geom_line(
+    colour = "#2f7fc1",
+    linewidth = 1.1
+  ) +
+  facet_wrap(~ variable, scales = "free_x", nrow = 1) +
+  labs(
+    title = "MaxEnt Bootstrap Response Curves",
+    x = "Predictor Value",
+    y = "Predicted Suitability\n(Bootstrap Mean)"
+  ) +
+  theme_manuscript()
+
+dev.off()
 
 
 ###----------------------------------------------------------------------------###
