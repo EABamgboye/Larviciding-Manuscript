@@ -48,7 +48,7 @@ Further studies incorporating multiple wards across diverse urban settings are n
 
 
 # Contact
-For any inquiries or contributions, please contact: Ifeoma Ozodiegwu, Assistant Professor @ Loyola University and Principal Investigator at the Urban Malaria Project via iozodiegwu@luc.edu and Eniola Bamgboye, Post dotoral Research Fellow @ Urban Malaria Laboratory, Loyola University Chicago
+For any inquiries or contributions, please contact: Ifeoma Ozodiegwu, Assistant Professor @ Loyola University and Principal Investigator at the Urban Malaria Project via iozodiegwu@luc.edu and Eniola Bamgboye, Post dotoral Research Fellow @ Urban Malaria Laboratory, Loyola University Chicago via ebamgboye@luc.edu 
 
 # Acknowledgments
 Special thanks to the Nigerian National Elimination Progeamme(NMEP), Osun State University, and all field researchers and collaborators
