@@ -1,4 +1,4 @@
-# Operational Insights for Larval Source Management Programs: A case study of Anopheles Breeding Habitat Dynamics across Urban Wards in Ibadan, Nigeria
+# Operational insights for larval source management programs: An exploratory study of Anopheles breeding habitat dynamics across urban wards in Ibadan, Nigeria
 
 
 # Overview
@@ -11,7 +11,7 @@ The entomological component included adult mosquito collection using indoor and 
 The overarching goal of the parent study was to generate evidence for the Nigerian National Malaria Elimination Programme (NMEP) to support the design and tailoring of interventions for the 2026 Urban Malaria Control Strategy.
 
 # Background
-The present study analyzed the entomological data from selected wards in Ibadan metropolis to characterize Anopheles larval habitats, assess seasonal and ward-level variation, evaluate household spatial malaria risk, and identify environmental drivers of Anopheles larva habitat suitability
+The present exploratory study analyzed the entomological data from selected wards in Ibadan metropolis to characterize Anopheles larval habitats, assess seasonal and ward-level variation, evaluate household spatial malaria risk, and identify environmental drivers of Anopheles larva habitat suitability
 
 # Methodology
 Potential breeding habitats were surveyed across three wards representing formal, informal, and slum settlement archetypes. Habitats were assessed for Anopheles larval presence, and larvae were collected and identified using standard methods. Breeding site density per km² was estimated using a simulated pathway technique. Spatial associations with household malaria risk were evaluated using kernel - based distance -decay weighting, while environmental drivers were modeled using MaxEnt.
